@@ -795,7 +795,10 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             }catch (Exception e){
                 e.printStackTrace();
             }
-            new Thread(this::callAllEpg).start();
+
+//            is_data_loaded=true;
+            getAuthorization();
+//            new Thread(this::callAllEpg).start();
         }catch (Exception e){
             e.printStackTrace();
             runOnUiThread(() -> {

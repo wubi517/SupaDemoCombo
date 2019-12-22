@@ -12,6 +12,7 @@ import android.os.StrictMode;
 import android.os.SystemClock;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -44,10 +45,13 @@ import com.gold.kds517.supacombonewstb.models.EPGChannel;
 import com.gold.kds517.supacombonewstb.models.EPGEvent;
 import com.gold.kds517.supacombonewstb.models.FullModel;
 import com.gold.kds517.supacombonewstb.utils.Utils;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.squareup.picasso.MemoryPolicy;
 import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -244,7 +248,8 @@ public class PreviewChannelIJKActivity extends AppCompatActivity implements  Ada
         channel_list.requestFocus();
         mStream_id = channels.get(sub_pos).getStream_id();
 //        new Thread(this::getEpg).start();
-        showEpg(channels.get(sub_pos));
+//        showEpg(channels.get(sub_pos));
+        new Thread(()-> getEpg(channels.get(sub_pos))).start();
         playChannel();
         new Thread(this::getRespond).start();
     }
@@ -405,27 +410,24 @@ public class PreviewChannelIJKActivity extends AppCompatActivity implements  Ada
 //
 //        }
 //    }
-//    int epg_time;
+    int epg_time;
 //    int i = 0;
     private void EpgTimer(){
-//        epg_time = 1;
+        epg_time = 1;
         mEpgTicker = () -> {
             mEpgHandler.removeCallbacks(mEpgTicker);
-            showEpg(channels.get(sub_pos));
-//            if (epg_time < 1) {
-//                i++;
-//                Log.e("count", String.valueOf(i));
-////                new Thread(this::getEpg).start();
-//                return;
-//            }
+            if (epg_time == 0) {
+                new Thread(()-> getEpg(channels.get(sub_pos))).start();
+                return;
+            }
             runNextEpgTicker();
         };
         mEpgTicker.run();
     }
 
     private void runNextEpgTicker() {
-//        epg_time--;
-        long next = SystemClock.uptimeMillis() + 60000;
+        epg_time--;
+        long next = SystemClock.uptimeMillis() + 1000;
         mEpgHandler.postAtTime(mEpgTicker, next);
     }
     @Override
@@ -676,20 +678,20 @@ public class PreviewChannelIJKActivity extends AppCompatActivity implements  Ada
         if(txt_progress.getVisibility()== View.GONE){
             if(epgModelList.size()>0) {
                 firstTime.setText(Constants.Offset(true,epgModelList.get(0).getStartTime()));
-                firstTitle.setText(epgModelList.get(0).getTitle());
+                firstTitle.setText(new String(Base64.decode(epgModelList.get(0).getTitle(),Base64.DEFAULT)));
                 if(epgModelList.size()>1){
                     secondTime.setText(Constants.Offset(true,epgModelList.get(1).getStartTime()));
-                    secondTitle.setText(epgModelList.get(1).getTitle());
+                    secondTitle.setText(new String(Base64.decode(epgModelList.get(1).getTitle(),Base64.DEFAULT)));
                 }
 
                 if(epgModelList.size()>2){
                     thirdTime.setText(Constants.Offset(true,epgModelList.get(2).getStartTime()));
-                    thirdTitle.setText(epgModelList.get(2).getTitle());
+                    thirdTitle.setText(new String(Base64.decode(epgModelList.get(2).getTitle(),Base64.DEFAULT)));
                 }
 
                 if(epgModelList.size()>3){
                     fourthTime.setText(Constants.Offset(true,epgModelList.get(3).getStartTime()));
-                    fourthTitle.setText(epgModelList.get(3).getTitle());
+                    fourthTitle.setText(new String(Base64.decode(epgModelList.get(3).getTitle(),Base64.DEFAULT)));
                 }
             }else {
                 firstTime.setText("");
@@ -1218,7 +1220,7 @@ public class PreviewChannelIJKActivity extends AppCompatActivity implements  Ada
                         channel_list.setSelection(sub_pos);
                         adapter.selectItem(sub_pos);
 //                        new Thread(()->getEpg()).start();
-                        showEpg(channels.get(sub_pos));
+                        new Thread(()-> getEpg(channels.get(sub_pos))).start();
                         playChannel();
                         listTimer();
                     }
@@ -1248,7 +1250,7 @@ public class PreviewChannelIJKActivity extends AppCompatActivity implements  Ada
                         channel_list.setSelection(sub_pos);
                         adapter.selectItem(sub_pos);
 //                        new Thread(()->getEpg()).start();
-                        showEpg(channels.get(sub_pos));
+                        new Thread(()-> getEpg(channels.get(sub_pos))).start();
                         playChannel();
                         listTimer();
                     }
@@ -1260,15 +1262,39 @@ public class PreviewChannelIJKActivity extends AppCompatActivity implements  Ada
         moveTicker.run();
     }
 
-    private void showEpg(EPGChannel epgChannel) {
-        int now_id = Constants.findNowEvent(epgChannel.getEvents());
-        Log.e("printdata",epgChannel.getName()+" "+epgChannel.getEvents().size()+" "+now_id);
-        epgModelList = new ArrayList<>();
-        if (now_id!=-1){
-            int end_id = epgChannel.getEvents().size()>now_id+4? now_id+4:epgChannel.getEvents().size();
-            epgModelList.addAll(epgChannel.getEvents().subList(now_id,end_id));
+//    private void showEpg(EPGChannel epgChannel) {
+//        int now_id = Constants.findNowEvent(epgChannel.getEvents());
+//        Log.e("printdata",epgChannel.getName()+" "+epgChannel.getEvents().size()+" "+now_id);
+//        epgModelList = new ArrayList<>();
+//        if (now_id!=-1){
+//            int end_id = epgChannel.getEvents().size()>now_id+4? now_id+4:epgChannel.getEvents().size();
+//            epgModelList.addAll(epgChannel.getEvents().subList(now_id,end_id));
+//        }
+//        printEpgData();
+//    }
+
+    private void getEpg(EPGChannel epgChannel){
+        try {
+            String map = MyApp.instance.getIptvclient().getShortEPG(MyApp.user,MyApp.pass,
+                    epgChannel.getStream_id()+"",4);
+            Log.e(getClass().getSimpleName(),map);
+            Gson gson=new Gson();
+            map=map.replaceAll("[^\\x00-\\x7F]", "");
+            if (!map.contains("null_error_response")){
+                Log.e("response",map);
+                try {
+                    JSONObject jsonObject= new JSONObject(map);
+                    JSONArray jsonArray=jsonObject.getJSONArray("epg_listings");
+                    epgModelList = new ArrayList<>();
+                    epgModelList.addAll(gson.fromJson(jsonArray.toString(), new TypeToken<List<EPGEvent>>(){}.getType()));
+                    runOnUiThread(this::printEpgData);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        printEpgData();
     }
 
     private void moveNextTicker() {

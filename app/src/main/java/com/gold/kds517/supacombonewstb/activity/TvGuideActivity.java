@@ -29,6 +29,7 @@ import com.gold.kds517.supacombonewstb.adapter.CategoryAdapter;
 import com.gold.kds517.supacombonewstb.adapter.EpgAdapter;
 import com.gold.kds517.supacombonewstb.apps.Constants;
 import com.gold.kds517.supacombonewstb.apps.MyApp;
+import com.gold.kds517.supacombonewstb.dialog.ConnectionDlg;
 import com.gold.kds517.supacombonewstb.dialog.PinDlg;
 import com.gold.kds517.supacombonewstb.models.EPGChannel;
 import com.gold.kds517.supacombonewstb.models.EPGEvent;
@@ -41,10 +42,23 @@ import org.videolan.libvlc.IVLCVout;
 import org.videolan.libvlc.LibVLC;
 import org.videolan.libvlc.Media;
 import org.videolan.libvlc.MediaPlayer;
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 public class TvGuideActivity extends AppCompatActivity implements View.OnClickListener, SurfaceHolder.Callback, IVLCVout.Callback {
     private String TAG=getClass().getSimpleName();
@@ -65,6 +79,7 @@ public class TvGuideActivity extends AppCompatActivity implements View.OnClickLi
     private int mVideoHeight;
     private EPGChannel selectedEpgChannel;
     private MediaPlayer mMediaPlayer = null;
+    private boolean is_data_loaded = false;
     LibVLC libvlc=null;
     private String contentUri;
     private TextView txt_time;
@@ -130,11 +145,25 @@ public class TvGuideActivity extends AppCompatActivity implements View.OnClickLi
         def_lay = findViewById(R.id.def_lay);
         surfaceView = findViewById(R.id.surface_view);
         txt_time = findViewById(R.id.txt_time);
+
+        ly_surface = findViewById(R.id.ly_surface);
+        ly_surface.setOnClickListener(this);
+        holder = surfaceView.getHolder();
+        holder.addCallback(this);
+        holder.setFormat(PixelFormat.RGBX_8888);
+
+        remote_subtitles_surface = findViewById(R.id.remote_subtitles_surface);
+        remote_subtitles_surface.setZOrderMediaOverlay(true);
+        remote_subtitles_surface.getHolder().setFormat(PixelFormat.TRANSLUCENT);
         Thread myThread;
         Runnable runnable = new CountDownRunner();
         myThread = new Thread(runnable);
         myThread.start();
-        setUI();
+        if (!is_data_loaded){
+            new Thread(this::callAllEpg).start();
+        }else{
+            runOnUiThread(this::setUI);
+        }
         FullScreencall();
     }
 
@@ -162,15 +191,6 @@ public class TvGuideActivity extends AppCompatActivity implements View.OnClickLi
         });
         epg_recyclerview.setAdapter(epgAdapter);
 
-        ly_surface = findViewById(R.id.ly_surface);
-        ly_surface.setOnClickListener(this);
-        holder = surfaceView.getHolder();
-        holder.addCallback(this);
-        holder.setFormat(PixelFormat.RGBX_8888);
-
-        remote_subtitles_surface = findViewById(R.id.remote_subtitles_surface);
-        remote_subtitles_surface.setZOrderMediaOverlay(true);
-        remote_subtitles_surface.getHolder().setFormat(PixelFormat.TRANSLUCENT);
         ViewGroup.LayoutParams params = ly_surface.getLayoutParams();
         params.height = MyApp.SURFACE_HEIGHT;
         params.width = MyApp.SURFACE_WIDTH;
@@ -473,5 +493,131 @@ public class TvGuideActivity extends AppCompatActivity implements View.OnClickLi
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
 
+    }
+
+
+    private void callAllEpg() {
+        try {
+            Log.e("BugCheck","getAllEPG start ");
+            long startTime = System.nanoTime();
+            //api call here
+            String inputStream = MyApp.instance.getIptvclient().getAllEPG(MyApp.user,MyApp.pass);
+            long endTime = System.nanoTime();
+
+            long MethodeDuration = (endTime - startTime);
+            //            Log.e(getClass().getSimpleName(),inputStream);
+            Log.e("BugCheck","getAllEPG success "+MethodeDuration);
+            if (inputStream==null || inputStream.length()==0) return;
+            SAXParserFactory parserFactory = SAXParserFactory.newInstance();
+            SAXParser parser = null;
+            //        Log.e("xml result","received");
+            try {
+                parser = parserFactory.newSAXParser();
+                DefaultHandler handler = new DefaultHandler(){
+                    String currentValue = "";
+                    boolean currentElement = false;
+                    EPGEvent prevEvent=null;
+                    EPGEvent currentEvent=null;
+                    String channel="";
+                    List<EPGChannel> currentChannelList;
+                    ArrayList<EPGEvent> epgModels=new ArrayList<>();
+                    public void startElement(String uri, String localName,String qName, Attributes attributes) {
+                        currentElement = true;
+                        currentValue = "";
+//                    Log.e("response","received");
+                        if(localName.equals("programme")){
+//                        Log.e("response","started programs list");
+                            currentEvent = new EPGEvent();
+                            String start=attributes.getValue(0);
+                            String end=attributes.getValue(1);
+                            currentEvent.setStart_timestamp(start);//.split(" ")[0]
+                            currentEvent.setStop_timestamp(end);//.split(" ")[0]
+                            if (!channel.equals(attributes.getValue(2))) {
+                                if (currentChannelList !=null && !currentChannelList.isEmpty()) {
+                                    Collections.sort(epgModels, new Comparator<EPGEvent>(){
+                                        public int compare(EPGEvent o1, EPGEvent o2){
+                                            return o1.getStart_timestamp().compareTo(o2.getStart_timestamp());
+                                        }
+                                    });
+                                    for (EPGChannel epgChannel:currentChannelList)
+                                        epgChannel.setEvents(epgModels);
+                                }
+                                epgModels=new ArrayList<>();
+                                channel=attributes.getValue(2);
+                                currentChannelList =findChannelByid(channel);
+                            }
+                        }
+                    }
+                    public void endElement(String uri, String localName, String qName) {
+                        currentElement = false;
+                        if (localName.equalsIgnoreCase("title"))
+                            currentEvent.setTitle(currentValue);
+                        else if (localName.equalsIgnoreCase("desc"))
+                            currentEvent.setDec(currentValue);
+                        else if (localName.equalsIgnoreCase("programme")) {
+                            if (currentChannelList !=null && !currentChannelList.isEmpty())
+                                currentEvent.setChannel(currentChannelList.get(0));
+                            if (prevEvent!=null){
+                                currentEvent.setPreviousEvent(prevEvent);
+                                prevEvent.setNextEvent(currentEvent);
+                            }
+                            prevEvent=currentEvent;
+                            for (EPGEvent epgEvent:epgModels){
+                                if (epgEvent.getTitle().equals(currentEvent.getTitle()) &&
+                                        epgEvent.getDec().equals(currentEvent.getDec()) &&
+                                        epgEvent.getStart_timestamp().equals(currentEvent.getStart_timestamp()) &&
+                                        epgEvent.getStop_timestamp().equals(currentEvent.getStop_timestamp()))
+                                    return;
+                            }
+                            epgModels.add(currentEvent);
+                        }
+                        else if (localName.equalsIgnoreCase("tv")){
+                            //
+                            is_data_loaded=true;
+                            runOnUiThread(()-> setUI());
+                        }
+                    }
+                    @Override
+                    public void characters(char[] ch, int start, int length) {
+                        if (currentElement) {
+                            currentValue = currentValue +  new String(ch, start, length);
+                        }
+                    }
+                };
+
+                parser.parse(new InputSource(new StringReader(inputStream)),handler);
+            } catch (ParserConfigurationException | SAXException | IOException e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            runOnUiThread(() -> {
+                ConnectionDlg connectionDlg = new ConnectionDlg(TvGuideActivity.this, new ConnectionDlg.DialogConnectionListener() {
+                    @Override
+                    public void OnYesClick(Dialog dialog) {
+                        dialog.dismiss();
+                        new Thread(() -> callAllEpg()).start();
+                    }
+
+                    @Override
+                    public void OnNoClick(Dialog dialog) {
+                        startActivity(new Intent(TvGuideActivity.this, ConnectionErrorActivity.class));
+                    }
+                },"LOGIN SUCCESSFUL LOADING DATA",null,null);
+                connectionDlg.show();
+            });
+        }
+    }
+
+    private List<EPGChannel> findChannelByid(String channel_id){
+        List<EPGChannel> channelList = new ArrayList<>();
+        Log.e("allfullmodel",MyApp.fullModels.size()+"");
+        List<EPGChannel> entireChannels =Constants.getAllFullModel(MyApp.fullModels).getChannels();
+        for (EPGChannel epgChannel : entireChannels) {
+            if (epgChannel.getId().equals(channel_id)) {
+                channelList.add(epgChannel);
+            }
+        }
+        return channelList;
     }
 }

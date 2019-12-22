@@ -704,7 +704,9 @@ public class SplashActivity extends AppCompatActivity{
             }catch (Exception e){
                 e.printStackTrace();
             }
-            new Thread(this::callAllEpg).start();
+
+            getAuthorization();
+//            new Thread(this::callAllEpg).start();
         }catch (Exception e){
             e.printStackTrace();
             runOnUiThread(() -> {
