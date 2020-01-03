@@ -1,5 +1,6 @@
 package com.gold.kds517.supacombonewstb.activity;
 
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -33,6 +34,7 @@ import android.widget.Toast;
 import com.gold.kds517.supacombonewstb.R;
 import com.gold.kds517.supacombonewstb.apps.Constants;
 import com.gold.kds517.supacombonewstb.apps.MyApp;
+import com.gold.kds517.supacombonewstb.dialog.OSDDlg;
 import com.gold.kds517.supacombonewstb.dialog.PackageDlg;
 import com.gold.kds517.supacombonewstb.utils.Utils;
 import com.squareup.picasso.MemoryPolicy;
@@ -61,7 +63,7 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
     SurfaceView remote_subtitles_surface;
     private SurfaceHolder holder;
     SeekBar seekBar;
-    LinearLayout bottom_lay, def_lay,ly_play,ly_resolution,ly_audio,ly_subtitle,ly_fav;
+    LinearLayout bottom_lay, def_lay,ly_play,ly_resolution,ly_audio,ly_subtitle,ly_fav,ly_audio_delay;
     RelativeLayout ly_header;
     ImageView img_play,image_icon;
 
@@ -76,9 +78,12 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
     ImageView imageView;
     Handler mHandler = new Handler();
     Handler handler = new Handler();
-    Runnable mTicker,rssTicker;
+    Handler delay_handler = new Handler();
+    Runnable mTicker,rssTicker,delayTicker;
     String cont_url,title,rss="";
-    int dration_time = 0,selected_item = 0,position,fav_pos = 0;
+    int dration_time = 0,selected_item = 0,position;
+    private OSDDlg osdDlg;
+    long delay_time = 0;
     boolean is_create = true,is_long=false;
     boolean is_exit = false,is_rss = false;
     List<String>  pkg_datas;
@@ -164,12 +169,14 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
         ly_play = findViewById(R.id.ly_play);
         ly_resolution = findViewById(R.id.ly_resolution);
         ly_subtitle = findViewById(R.id.ly_subtitle);
+        ly_audio_delay = findViewById(R.id.ly_audio_delay);
 
         ly_subtitle.setOnClickListener(this);
         ly_play.setOnClickListener(this);
         ly_resolution.setOnClickListener(this);
         ly_subtitle.setOnClickListener(this);
         ly_audio.setOnClickListener(this);
+        ly_audio_delay.setOnClickListener(this);
 
         img_play = findViewById(R.id.img_play);
         txt_rss = findViewById(R.id.txt_rss);
@@ -715,6 +722,16 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
                     img_play.setImageResource(R.drawable.exo_pause);
                 }
                 break;
+            case R.id.ly_audio_delay:
+                osdDlg = new OSDDlg(this, delay_time / 1000, (dialog, episode_num) -> {
+                    if(mMediaPlayer!=null){
+                        delay_time = episode_num*1000;
+                        mMediaPlayer.setAudioDelay(delay_time);
+                    }
+                });
+                osdDlg.show();
+                delayTimer();
+                break;
         }
     }
 
@@ -757,15 +774,13 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
     int maxTime;
     private void startTimer() {
         maxTime = 10;
-        mTicker = new Runnable() {
-            public void run() {
-                if (maxTime < 1) {
-                    if (bottom_lay.getVisibility() == View.VISIBLE)
-                        bottom_lay.setVisibility(View.GONE);
-                    return;
-                }
-                runNextTicker();
+        mTicker = () -> {
+            if (maxTime < 1) {
+                if (bottom_lay.getVisibility() == View.VISIBLE)
+                    bottom_lay.setVisibility(View.GONE);
+                return;
             }
+            runNextTicker();
         };
         mTicker.run();
     }
@@ -774,6 +789,32 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
         maxTime --;
         long next = SystemClock.uptimeMillis() + 1000;
         handler.postAtTime(mTicker, next);
+    }
+
+    private void delayTimer(){
+        delay_handler.removeCallbacks(delayTicker);
+        updateDelayTimer();
+    }
+    int delay_max;
+    private void updateDelayTimer(){
+        delay_max = 5;
+        delayTicker = () -> {
+            Log.e("delay_time",String.valueOf(delay_max));
+            if(delay_max<1){
+                if(osdDlg.isShowing()){
+                    osdDlg.dismiss();
+                }
+                return;
+            }
+            runNextDelayTicker();
+        };
+        delayTicker.run();
+    }
+
+    private void runNextDelayTicker(){
+        delay_max--;
+        long next = SystemClock.uptimeMillis() + 1000;
+        delay_handler.postAtTime(delayTicker, next);
     }
 
     @Override
@@ -860,8 +901,17 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
                                     current_resolution++;
                                     if (current_resolution == resolutions.length)
                                         current_resolution = 0;
-
                                     mMediaPlayer.setAspectRatio(resolutions[current_resolution]);
+                                    break;
+                                case 3:
+                                    osdDlg = new OSDDlg(this,  delay_time/1000, (dialog1, episode_num) -> {
+                                        if(mMediaPlayer!=null){
+                                            delay_time = episode_num*1000;
+                                            mMediaPlayer.setAudioDelay(delay_time);
+                                        }
+                                    });
+                                    osdDlg.show();
+                                    delayTimer();
                                     break;
                             }
                         });

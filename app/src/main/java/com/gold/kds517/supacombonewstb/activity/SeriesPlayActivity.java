@@ -34,6 +34,7 @@ import android.widget.Toast;
 import com.gold.kds517.supacombonewstb.R;
 import com.gold.kds517.supacombonewstb.apps.Constants;
 import com.gold.kds517.supacombonewstb.apps.MyApp;
+import com.gold.kds517.supacombonewstb.dialog.OSDDlg;
 import com.gold.kds517.supacombonewstb.dialog.PackageDlg;
 import com.gold.kds517.supacombonewstb.models.MovieModel;
 import com.gold.kds517.supacombonewstb.utils.Utils;
@@ -62,7 +63,7 @@ public class SeriesPlayActivity extends AppCompatActivity implements  SeekBar.On
     SurfaceView remote_subtitles_surface;
     private SurfaceHolder holder;
 
-    LinearLayout ly_play,ly_resolution,ly_audio,ly_subtitle;
+    LinearLayout ly_play,ly_resolution,ly_audio,ly_subtitle,ly_audio_delay;
     RelativeLayout ly_header;
     ImageView img_play,image_icon;
 
@@ -78,9 +79,12 @@ public class SeriesPlayActivity extends AppCompatActivity implements  SeekBar.On
     ImageView imageView;
     Handler mHandler = new Handler();
     Handler handler = new Handler();
-    Runnable mTicker,rssTicker;
+    Runnable mTicker,rssTicker,delayTicker;
     String cont_url,title,stream_id,img,name,rss="";
     int dration_time = 0,pos,position,selected_item = 0,msg_time = 0;
+    private OSDDlg osdDlg;
+    private long delay_time;
+    Handler delay_handler = new Handler();
     private boolean is_msg = false;
 //    long media_position;
 //    List<PositionModel> positionModels;
@@ -179,11 +183,13 @@ public class SeriesPlayActivity extends AppCompatActivity implements  SeekBar.On
         ly_play = findViewById(R.id.ly_play);
         ly_resolution = findViewById(R.id.ly_resolution);
         ly_subtitle = findViewById(R.id.ly_subtitle);
+        ly_audio_delay = findViewById(R.id.ly_audio_delay);
 
         ly_play.setOnClickListener(this);
         ly_resolution.setOnClickListener(this);
         ly_subtitle.setOnClickListener(this);
         ly_audio.setOnClickListener(this);
+        ly_audio_delay.setOnClickListener(this);
 
         img_play = findViewById(R.id.img_play);
 
@@ -724,7 +730,43 @@ public class SeriesPlayActivity extends AppCompatActivity implements  SeekBar.On
                 if (bottom_lay.getVisibility() == View.GONE) bottom_lay.setVisibility(View.VISIBLE);
                 updateTimer();
                 break;
+            case R.id.ly_audio_delay:
+                osdDlg = new OSDDlg(this, delay_time / 1000, (dialog, episode_num) -> {
+                    if(mMediaPlayer!=null){
+                        delay_time = episode_num*1000;
+                        mMediaPlayer.setAudioDelay(delay_time);
+                    }
+                });
+                osdDlg.show();
+                delayTimer();
+                break;
         }
+    }
+
+    private void delayTimer(){
+        delay_handler.removeCallbacks(delayTicker);
+        updateDelayTimer();
+    }
+    int delay_max;
+    private void updateDelayTimer(){
+        delay_max = 5;
+        delayTicker = () -> {
+            Log.e("delay_time",String.valueOf(delay_max));
+            if(delay_max<1){
+                if(osdDlg.isShowing()){
+                    osdDlg.dismiss();
+                }
+                return;
+            }
+            runNextDelayTicker();
+        };
+        delayTicker.run();
+    }
+
+    private void runNextDelayTicker(){
+        delay_max--;
+        long next = SystemClock.uptimeMillis() + 1000;
+        delay_handler.postAtTime(delayTicker, next);
     }
 
     @Override
@@ -835,46 +877,53 @@ public class SeriesPlayActivity extends AppCompatActivity implements  SeekBar.On
                         finish();
                         break;
                     case KeyEvent.KEYCODE_MENU:
-                        PackageDlg packageDlg = new PackageDlg(SeriesPlayActivity.this, pkg_datas, new PackageDlg.DialogPackageListener() {
-                            @Override
-                            public void OnItemClick(Dialog dialog, int position) {
-                                dialog.dismiss();
-                                is_long = false;
-                                switch (position) {
-                                    case 0:
-                                        if (subtraks != null) {
-                                            if (subtraks.length > 0) {
-                                                showSubTracksList();
-                                            } else {
-                                                Toast.makeText(getApplicationContext(),
-                                                        "No subtitle or not loading yet", Toast.LENGTH_LONG).show();
-                                            }
+                        PackageDlg packageDlg = new PackageDlg(SeriesPlayActivity.this, pkg_datas, (dialog, position) -> {
+                            dialog.dismiss();
+                            is_long = false;
+                            switch (position) {
+                                case 0:
+                                    if (subtraks != null) {
+                                        if (subtraks.length > 0) {
+                                            showSubTracksList();
                                         } else {
                                             Toast.makeText(getApplicationContext(),
                                                     "No subtitle or not loading yet", Toast.LENGTH_LONG).show();
                                         }
-                                        break;
-                                    case 1:
-                                        if (traks != null) {
-                                            if (traks.length > 0) {
-                                                showAudioTracksList();
-                                            } else {
-                                                Toast.makeText(getApplicationContext(),
-                                                        "No audio tracks or not loading yet", Toast.LENGTH_LONG).show();
-                                            }
+                                    } else {
+                                        Toast.makeText(getApplicationContext(),
+                                                "No subtitle or not loading yet", Toast.LENGTH_LONG).show();
+                                    }
+                                    break;
+                                case 1:
+                                    if (traks != null) {
+                                        if (traks.length > 0) {
+                                            showAudioTracksList();
                                         } else {
                                             Toast.makeText(getApplicationContext(),
                                                     "No audio tracks or not loading yet", Toast.LENGTH_LONG).show();
                                         }
-                                        break;
-                                    case 2:
-                                        current_resolution++;
-                                        if (current_resolution == resolutions.length)
-                                            current_resolution = 0;
+                                    } else {
+                                        Toast.makeText(getApplicationContext(),
+                                                "No audio tracks or not loading yet", Toast.LENGTH_LONG).show();
+                                    }
+                                    break;
+                                case 2:
+                                    current_resolution++;
+                                    if (current_resolution == resolutions.length)
+                                        current_resolution = 0;
 
-                                        mMediaPlayer.setAspectRatio(resolutions[current_resolution]);
-                                        break;
-                                }
+                                    mMediaPlayer.setAspectRatio(resolutions[current_resolution]);
+                                    break;
+                                case 3:
+                                    osdDlg = new OSDDlg(SeriesPlayActivity.this,  delay_time/1000, (dialog1, episode_num) -> {
+                                        if(mMediaPlayer!=null){
+                                            delay_time = episode_num*1000;
+                                            mMediaPlayer.setAudioDelay(delay_time);
+                                        }
+                                    });
+                                    osdDlg.show();
+                                    delayTimer();
+                                    break;
                             }
                         });
                         packageDlg.show();

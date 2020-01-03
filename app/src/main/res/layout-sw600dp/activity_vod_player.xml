@@ -106,8 +106,23 @@
                     android:layout_marginLeft="10dp"
                     android:layout_marginTop="10dp"/>
                 <LinearLayout
-                    android:id="@+id/ly_resolution"
+                    android:id="@+id/ly_audio_delay"
                     android:layout_alignParentRight="true"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_gravity="center"
+                    android:layout_marginLeft="5sp"
+                    android:padding="2sp">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/audio_delay"
+                        />
+                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/ly_resolution"
+                    android:layout_toLeftOf="@+id/ly_audio_delay"
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:layout_gravity="center"

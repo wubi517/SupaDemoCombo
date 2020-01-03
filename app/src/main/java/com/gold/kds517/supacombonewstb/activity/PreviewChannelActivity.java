@@ -39,6 +39,7 @@ import com.gold.kds517.supacombonewstb.R;
 import com.gold.kds517.supacombonewstb.adapter.MainListAdapter;
 import com.gold.kds517.supacombonewstb.apps.Constants;
 import com.gold.kds517.supacombonewstb.apps.MyApp;
+import com.gold.kds517.supacombonewstb.dialog.OSDDlg;
 import com.gold.kds517.supacombonewstb.dialog.PackageDlg;
 import com.gold.kds517.supacombonewstb.dialog.PinDlg;
 import com.gold.kds517.supacombonewstb.dialog.SearchDlg;
@@ -63,6 +64,7 @@ import org.videolan.libvlc.MediaPlayer;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -82,7 +84,7 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
     public static SurfaceView surfaceView;
     SurfaceView remote_subtitles_surface;
     private SurfaceHolder holder;
-    LinearLayout def_lay,ly_bottom,ly_resolution,ly_audio,ly_subtitle;
+    LinearLayout def_lay,ly_bottom,ly_resolution,ly_audio,ly_subtitle,ly_audio_delay;
     RelativeLayout ly_header;
     MediaPlayer.TrackDescription[] traks;
     MediaPlayer.TrackDescription[] subtraks;
@@ -111,7 +113,10 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
     Handler mEpgHandler = new Handler();
     Handler rssHandler = new Handler();
     Handler removeHamdler = new Handler();
-    Runnable mTicker,moveTicker,mEpgTicker,rssTicker;
+    Handler delay_handler = new Handler();
+    Runnable mTicker,moveTicker,mEpgTicker,rssTicker,delayTicker;
+    private OSDDlg osdDlg;
+    long delay_time = 0;
     boolean is_full = false,is_up = false,is_create= true,is_rss = false,is_msg = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,9 +138,7 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
         detector = new SimpleGestureFilter(this, PreviewChannelActivity.this);
         context = this;
         pkg_datas = new ArrayList<>();
-        for (int i = 0; i < getResources().getStringArray(R.array.package_list).length; i++) {
-            pkg_datas.add(getResources().getStringArray(R.array.package_list)[i]);
-        }
+        pkg_datas.addAll(Arrays.asList(getResources().getStringArray(R.array.package_list)));
         main_lay = findViewById(R.id.main_lay);
         main_lay.setOnClickListener(this);
         MyApp.is_first = true;
@@ -183,7 +186,9 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
         myThread.start();
         def_lay = findViewById(R.id.def_lay);
         ly_surface = findViewById(R.id.ly_surface);
+        ly_audio_delay = findViewById(R.id.ly_audio_delay);
         ly_surface.setOnClickListener(this);
+        ly_audio_delay.setOnClickListener(this);
         surfaceView = findViewById(R.id.surface_view);
         holder = surfaceView.getHolder();
         holder.addCallback(this);
@@ -451,6 +456,16 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
                             "No audio tracks or not loading yet", Toast.LENGTH_LONG).show();
                 }
                 break;
+            case R.id.ly_audio_delay:
+                osdDlg = new OSDDlg(this, delay_time / 1000, (dialog1, episode_num) -> {
+                    if(mMediaPlayer!=null){
+                        delay_time = episode_num*1000;
+                        mMediaPlayer.setAudioDelay(delay_time);
+                    }
+                });
+                osdDlg.show();
+                delayTimer();
+                break;
 
             case R.id.ly_subtitle:
                 if (subtraks != null) {
@@ -580,8 +595,8 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
                         long millis =epgModelList.get(0).getStartTime().getTime()+wrongMedialaanTime+Constants.SEVER_OFFSET;
                         long mills_to = epgModelList.get(0).getEndTime().getTime()+wrongMedialaanTime+Constants.SEVER_OFFSET;
                         if(totalDuration>millis){
-                            txt_title.setText(epgModelList.get(0).getTitle());
-                            txt_dec.setText(epgModelList.get(0).getDec());
+                            txt_title.setText(new String(Base64.decode(epgModelList.get(0).getTitle(),Base64.DEFAULT)));
+                            txt_dec.setText(new String(Base64.decode(epgModelList.get(0).getDec(),Base64.DEFAULT)));
                             try {
                                 txt_channel.setText(channels.get(sub_pos).getNum() + " " + channels.get(sub_pos).getName());
                             }catch (Exception e1){
@@ -603,8 +618,8 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
                             txt_time_passed.setText("Started " + pass_min +" mins ago");
                             txt_remain_time.setText("+"+remain_min+" min");
                             txt_last_time.setText(Constants.clockFormat.format(new Date(mills_to-wrongMedialaanTime)));
-                            txt_current_dec.setText(epgModelList.get(0).getTitle());
-                            txt_next_dec.setText(epgModelList.get(1).getTitle());
+                            txt_current_dec.setText(new String(Base64.decode(epgModelList.get(0).getTitle(),Base64.DEFAULT)));
+                            txt_next_dec.setText(new String(Base64.decode(epgModelList.get(1).getTitle(),Base64.DEFAULT)));
                             if(channels.get(sub_pos).is_favorite()){
                                 image_star.setVisibility(View.VISIBLE);
                             }else {
@@ -891,13 +906,23 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
                                 }
                                 break;
                             case 4:
+                                osdDlg = new OSDDlg(this, delay_time / 1000, (dialog1, episode_num) -> {
+                                    if(mMediaPlayer!=null){
+                                        delay_time = episode_num*1000;
+                                        mMediaPlayer.setAudioDelay(delay_time);
+                                    }
+                                });
+                                osdDlg.show();
+                                delayTimer();
+                                break;
+                            case 5:
                                 current_resolution++;
                                 if (current_resolution == resolutions.length)
                                     current_resolution = 0;
 
                                 mMediaPlayer.setAspectRatio(resolutions[current_resolution]);
                                 break;
-                            case 5:
+                            case 6:
                                 startActivity(new Intent(PreviewChannelActivity.this,WebViewActivity.class));
                                 break;
                         }
@@ -1255,6 +1280,33 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
         }
         return super.dispatchKeyEvent(event);
     }
+
+    private void delayTimer(){
+        delay_handler.removeCallbacks(delayTicker);
+        updateDelayTimer();
+    }
+    int delay_max;
+    private void updateDelayTimer(){
+        delay_max = 10;
+        delayTicker = () -> {
+            Log.e("delay_time",String.valueOf(delay_max));
+            if(delay_max<1){
+                if(osdDlg.isShowing()){
+                    osdDlg.dismiss();
+                }
+                return;
+            }
+            runNextDelayTicker();
+        };
+        delayTicker.run();
+    }
+
+    private void runNextDelayTicker(){
+        delay_max--;
+        long next = SystemClock.uptimeMillis() + 1000;
+        delay_handler.postAtTime(delayTicker, next);
+    }
+
     int moveTime;
     private void moveTimer() {
         moveTime = 2;

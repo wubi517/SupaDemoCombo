@@ -805,8 +805,8 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
                         long millis =epgModelList.get(0).getStartTime().getTime()+wrongMedialaanTime+Constants.SEVER_OFFSET;
                         long mills_to = epgModelList.get(0).getEndTime().getTime()+wrongMedialaanTime+Constants.SEVER_OFFSET;
                         if(totalDuration>millis){
-                            txt_title.setText(epgModelList.get(0).getTitle());
-                            txt_dec.setText(epgModelList.get(0).getDec());
+                            txt_title.setText(new String(Base64.decode(epgModelList.get(0).getTitle(),Base64.DEFAULT)));
+                            txt_dec.setText(new String(Base64.decode(epgModelList.get(0).getDec(),Base64.DEFAULT)));
                             try {
                                 txt_channel.setText(channels.get(sub_pos).getNum() + " " + channels.get(sub_pos).getName());
                             }catch (Exception e1){
@@ -828,8 +828,8 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
                             txt_time_passed.setText("Started " + pass_min +" mins ago");
                             txt_remain_time.setText("+"+remain_min+" min");
                             txt_last_time.setText(Constants.clockFormat.format(new Date(mills_to-wrongMedialaanTime)));
-                            txt_current_dec.setText(epgModelList.get(Constants.findNowEvent(epgModelList)).getTitle());
-                            txt_next_dec.setText(epgModelList.get(Constants.findNowEvent(epgModelList)+1).getTitle());
+                            txt_current_dec.setText(new String(Base64.decode(epgModelList.get(0).getTitle(),Base64.DEFAULT)));
+                            txt_next_dec.setText(new String(Base64.decode(epgModelList.get(1).getTitle(),Base64.DEFAULT)));
                             if(channels.get(sub_pos).is_favorite()){
                                 image_star.setVisibility(View.VISIBLE);
                             }else {

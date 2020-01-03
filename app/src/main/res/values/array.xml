@@ -28,6 +28,7 @@
         <item>Search</item>
         <item>Subtitle</item>
         <item>Audio Track</item>
+        <item>Audio Delay</item>
         <item>Screen ratio</item>
         <item>TV Schedule</item>
     </string-array>
@@ -40,6 +41,7 @@
         <item>Subtitle</item>
         <item>Audio Track</item>
         <item>Screen ratio</item>
+        <item>Audio Delay</item>
     </string-array>
     <string-array name="package_list2">
         <item>Subtitle</item>
