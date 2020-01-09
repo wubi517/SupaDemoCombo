@@ -507,7 +507,7 @@
                         android:paddingLeft="10sp"
                         android:background="@drawable/yellow_bg"
                         android:layout_width="0sp"
-                        android:layout_weight="0.35"
+                        android:layout_weight="0.3"
                         android:layout_height="match_parent">
                         <TextView
                             android:textSize="15sp"
@@ -523,7 +523,7 @@
                         android:layout_marginLeft="5sp"
                         android:background="@drawable/title_bg"
                         android:layout_width="0sp"
-                        android:layout_weight="0.3"
+                        android:layout_weight="0.25"
                         android:layout_height="match_parent">
                         <TextView
                             android:id="@+id/txt_next_dec"
@@ -542,7 +542,6 @@
                         android:orientation="horizontal">
                         <LinearLayout
                             android:id="@+id/ly_audio_delay"
-                            android:layout_marginLeft="10sp"
                             android:layout_alignParentRight="true"
                             android:layout_width="36sp"
                             android:layout_height="36sp"
