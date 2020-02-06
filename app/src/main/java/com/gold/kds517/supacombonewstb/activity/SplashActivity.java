@@ -21,6 +21,7 @@ import com.gold.kds517.supacombonewstb.apps.MyApp;
 import com.gold.kds517.supacombonewstb.apps.PlayGifView;
 import com.gold.kds517.supacombonewstb.dialog.ConnectionDlg;
 import com.gold.kds517.supacombonewstb.models.CategoryModel;
+import com.gold.kds517.supacombonewstb.models.ChannelModel;
 import com.gold.kds517.supacombonewstb.models.EPGChannel;
 import com.gold.kds517.supacombonewstb.models.EPGEvent;
 import com.gold.kds517.supacombonewstb.models.FullModel;
@@ -54,7 +55,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 public class SplashActivity extends AppCompatActivity{
-    String user,password,exp_date,xxxcategory_id;
+    String user,password;
     List<CategoryModel> categories;
     LoginModel loginModel;
     List<MovieModel>movieModels;
@@ -109,10 +110,12 @@ public class SplashActivity extends AppCompatActivity{
                 JSONObject u_m;
                 u_m = map.getJSONObject("user_info");
                 if (!u_m.has("username")) {
-                    Toast.makeText(SplashActivity.this, "Username is incorrect", Toast.LENGTH_LONG).show();
-                    MyApp.instance.getPreference().remove(Constants.getLoginInfo());
-                    startActivity(new Intent(SplashActivity.this,LoginActivity.class));
-                    finish();
+                    runOnUiThread(() ->{
+                        Toast.makeText(SplashActivity.this, "Username is incorrect", Toast.LENGTH_LONG).show();
+                        MyApp.instance.getPreference().remove(Constants.getLoginInfo());
+                        startActivity(new Intent(SplashActivity.this,LoginActivity.class));
+                        finish();
+                    } );
                 } else {
                     MyApp.created_at = u_m.getString("created_at");
                     MyApp.status = u_m.getString("status");
@@ -334,6 +337,10 @@ public class SplashActivity extends AppCompatActivity{
                 Gson gson=new Gson();
                 try{
                     channelModels = new ArrayList<>(gson.fromJson(map, new TypeToken<List<EPGChannel>>() {}.getType()));
+                    for(EPGChannel channelModel:channelModels){
+                        if (channelModel.getCategory_id().equals(Constants.xxx_category_id))
+                            channelModel.setIs_locked(true);
+                    }
                 }catch (Exception e){
                     JSONArray response;
                     try {

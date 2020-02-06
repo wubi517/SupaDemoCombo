@@ -129,6 +129,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         }
 //        name_txt.setText("letsgochamp");
 //        pass_txt.setText("Ou5Z9qcN8z");
+        name_txt.setText("Franco62");
+        pass_txt.setText("62Franco");
         TextView mac_txt = findViewById(R.id.login_mac_address);
         mac_txt.setText(MyApp.mac_address);
         TextView version_txt = findViewById(R.id.app_version_code);
@@ -429,6 +431,10 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                 Gson gson=new Gson();
                 try{
                     channelModels = new ArrayList<>(gson.fromJson(map, new TypeToken<List<EPGChannel>>() {}.getType()));
+                    for(EPGChannel channelModel:channelModels){
+                        if (channelModel.getCategory_id().equals(Constants.xxx_category_id))
+                            channelModel.setIs_locked(true);
+                    }
                 }catch (Exception e){
                     JSONArray response;
                     try {

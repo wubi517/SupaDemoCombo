@@ -218,6 +218,8 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                     startActivity(new Intent(WelcomeActivity.this, TvGuideActivity.class));
                 }else if(txt_center.getText().toString().equalsIgnoreCase("multi")){
                     showScreenModeList();
+                }else if(txt_center.getText().toString().equalsIgnoreCase("record")){
+                    startActivity(new Intent(this,RecordingActivity.class));
                 }
                 break;
         }
@@ -327,10 +329,13 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                 center_str="tv series";
                 break;
             case "setting":
-                center_str="guide";
+                center_str="record";
                 break;
             case "video club":
                 center_str="setting";
+                break;
+            case "record":
+                center_str = "guide";
                 break;
         }
         changeButtons(center_str);
@@ -414,8 +419,8 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                 categroy_list.setAdapter(categoryListAdapter);
                 image_center.setImageResource(R.drawable.guide);
                 txt_center.setText("GUIDE");
-                image_right.setImageResource(R.drawable.setting);
-                txt_right.setText("SETTING");
+                image_right.setImageResource(R.drawable.record);
+                txt_right.setText("RECORD");
                 image_left.setImageResource(R.drawable.tv_serires);
                 txt_left.setText("TV SERIES");
                 break;
@@ -425,10 +430,21 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                 categroy_list.setAdapter(categoryListAdapter);
                 image_center.setImageResource(R.drawable.setting);
                 image_right.setImageResource(R.drawable.video_club);
-                image_left.setImageResource(R.drawable.guide);
+                image_left.setImageResource(R.drawable.record);
                 txt_center.setText("SETTING");
                 txt_right.setText("VIDEO CLUB");
+                txt_left.setText("RECORD");
+                break;
+            case "record":
+                categories = new ArrayList<>();
+                categoryListAdapter = new CategoryListAdapter(WelcomeActivity.this,categories);
+                categroy_list.setAdapter(categoryListAdapter);
+                image_center.setImageResource(R.drawable.record);
+                image_left.setImageResource(R.drawable.guide);
+                image_right.setImageResource(R.drawable.setting);
+                txt_center.setText("RECORD");
                 txt_left.setText("GUIDE");
+                txt_right.setText("SETTING");
                 break;
         }
     }
@@ -503,13 +519,16 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                 center_str="guide";
                 break;
             case "guide":
-                center_str="setting";
+                center_str="record";
                 break;
             case "setting":
                 center_str="video club";
                 break;
             case "video club":
                 center_str="tv";
+                break;
+            case "record":
+                center_str="setting";
                 break;
         }
         changeButtons(center_str);
@@ -595,6 +614,7 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                 MyApp.instance.getPreference().put(Constants.getVodPos(),category_pos);
                 categoryListAdapter.selectItem(position);
                 startActivity(new Intent(this,PreviewVodActivity.class));
+//                startActivity(new Intent(this,RecordingActivity.class));
                 break;
         }
     }
@@ -739,6 +759,8 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                         startActivity(new Intent(this, TvGuideActivity.class));
                     }else if (txt_center.getText().toString().equalsIgnoreCase("multi")){
                         showScreenModeList();
+                    }else if(txt_center.getText().toString().equalsIgnoreCase("record")){
+                        startActivity(new Intent(this,RecordingActivity.class));
                     }
                     break;
                 case KeyEvent.KEYCODE_DPAD_DOWN:
@@ -826,6 +848,7 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                     MyApp.instance.getPreference().remove(Constants.getCHANNEL_POS());
                     MyApp.instance.getPreference().remove(Constants.getSeriesPos());
                     MyApp.instance.getPreference().remove(Constants.getVodPos());
+                    MyApp.instance.getPreference().remove(Constants.getRecentChannels());
 
                 startActivity(new Intent(WelcomeActivity.this, LoginActivity.class));
                 finish();

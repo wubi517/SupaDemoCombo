@@ -7,6 +7,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -17,6 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -43,7 +48,9 @@ import com.gold.kds517.supacombonewstb.apps.Constants;
 import com.gold.kds517.supacombonewstb.apps.MyApp;
 import com.gold.kds517.supacombonewstb.dialog.PackageDlg;
 import com.gold.kds517.supacombonewstb.dialog.PinDlg;
+import com.gold.kds517.supacombonewstb.dialog.RecordingDlg;
 import com.gold.kds517.supacombonewstb.dialog.SearchDlg;
+import com.gold.kds517.supacombonewstb.dialog.StopRecordingDlg;
 import com.gold.kds517.supacombonewstb.listner.SimpleGestureFilter;
 import com.gold.kds517.supacombonewstb.models.EPGChannel;
 import com.gold.kds517.supacombonewstb.models.EPGEvent;
@@ -114,13 +121,18 @@ import org.json.JSONObject;
 import java.lang.reflect.Constructor;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import static com.gold.kds517.supacombonewstb.apps.MyApp.INPUT_FILE;
+import static com.gold.kds517.supacombonewstb.apps.MyApp.INPUT_NAME;
+import static com.gold.kds517.supacombonewstb.apps.MyApp.is_recording;
 import static java.lang.Integer.parseInt;
 
 public class PreviewChannelExoActivity extends AppCompatActivity implements  AdapterView.OnItemClickListener, View.OnClickListener,
@@ -177,7 +189,7 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
     private int mVideoHeight;
     private SimpleGestureFilter detector;
     Context context = null;
-    LinearLayout def_lay,ly_bottom,ly_resolution,ly_audio,ly_subtitle;
+    LinearLayout def_lay,ly_bottom,ly_resolution,ly_audio,ly_subtitle,ly_rec;
     RelativeLayout ly_header;
 
     boolean first = true;
@@ -230,10 +242,8 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
         detector = new SimpleGestureFilter(this, PreviewChannelExoActivity.this);
         context = this;
         pkg_datas = new ArrayList<>();
-        for (int i = 0; i < getResources().getStringArray(R.array.package_list).length; i++) {
-            pkg_datas.add(getResources().getStringArray(R.array.package_list)[i]);
-        }
-        main_lay = (RelativeLayout)findViewById(R.id.main_lay);
+        pkg_datas.addAll(Arrays.asList(getResources().getStringArray(R.array.package_list_exo)));
+        main_lay = findViewById(R.id.main_lay);
         main_lay.setOnClickListener(this);
         MyApp.is_first = true;
         full_datas = MyApp.fullModels_filter;
@@ -287,10 +297,12 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
         ly_audio = findViewById(R.id.ly_audio);
         ly_resolution = findViewById(R.id.ly_resolution);
         ly_subtitle = findViewById(R.id.ly_subtitle);
+        ly_rec = findViewById(R.id.ly_rec);
 
         ly_subtitle.setOnClickListener(this);
         ly_resolution.setOnClickListener(this);
         ly_audio.setOnClickListener(this);
+        ly_rec.setOnClickListener(this);
 
         txt_rss = findViewById(R.id.txt_rss);
         txt_rss.setSingleLine(true);
@@ -411,17 +423,6 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
     }
 
 
-//    private void showEpg(EPGChannel epgChannel) {
-//        int now_id = Constants.findNowEvent(epgChannel.getEvents());
-//        Log.e("printdata",epgChannel.getName()+" "+epgChannel.getEvents().size()+" "+now_id);
-//        epgModelList = new ArrayList<>();
-//        if (now_id!=-1){
-//            int end_id = epgChannel.getEvents().size()>now_id+4? now_id+4:epgChannel.getEvents().size();
-//            epgModelList.addAll(epgChannel.getEvents().subList(now_id,end_id));
-//        }
-//        printEpgData();
-//    }
-
     private void printEpgData(){
         Log.e("printdata","true "+epgModelList.size());
         if(txt_progress.getVisibility()== View.GONE){
@@ -486,10 +487,17 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
                     String finalMsg = msg;
                     runOnUiThread(()->{
                         String rss_feed = "                 "+ finalMsg +"                 ";
+                        Paint paint = new Paint();
+                        paint.setTextSize(25);
+                        paint.setColor(Color.BLACK);
+                        paint.setStyle(Paint.Style.FILL);
+                        paint.setTypeface(Typeface.DEFAULT);
+                        Rect result = new Rect();
+                        paint.getTextBounds(rss_feed, 0, rss_feed.length(), result);
                         if(rss.equalsIgnoreCase(rss_feed)){
                             ly_header.setVisibility(View.GONE);
-    //                            image_icon.setVisibility(View.GONE);
-    //                            txt_rss.setVisibility(View.GONE);
+//                            image_icon.setVisibility(View.GONE);
+//                            txt_rss.setVisibility(View.GONE);
                             is_rss = false;
                         }else {
                             rss =rss_feed;
@@ -497,15 +505,36 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
                             ly_header.setVisibility(View.VISIBLE);
                         }
 
-                        if(is_msg){
-                            ly_header.setVisibility(View.VISIBLE);
-                            txt_rss.setText(rss);
-                            Animation bottomToTop = AnimationUtils.loadAnimation(this, R.anim.bottom_to_top);
-                            txt_rss.clearAnimation();
-                            txt_rss.startAnimation(bottomToTop);
+                        int divide = (MyApp.SCREEN_WIDTH)/Utils.dp2px(this,result.width());
+                        Log.e("divide",divide+"");
+                        if(divide>=1){
+                            if(is_msg){
+                                ly_header.setVisibility(View.VISIBLE);
+                                txt_rss.setText(rss);
+                                Animation bottomToTop = AnimationUtils.loadAnimation(this, R.anim.bottom_to_top);
+                                txt_rss.clearAnimation();
+                                txt_rss.startAnimation(bottomToTop);
+                            }else {
+                                ly_header.setVisibility(View.GONE);
+                            }
                         }else {
-                            ly_header.setVisibility(View.GONE);
+                            if(is_msg){
+                                ly_header.setVisibility(View.VISIBLE);
+                                for(int i =0;i<divide+1;i++){
+                                    rss_feed += rss_feed;
+                                }
+                                Log.e("rss2",rss);
+//                            txt_rss.setText(rss);
+//                            txt_rss.startAnimation(AnimationUtils.loadAnimation(getApplicationContext(), R.anim.marquee1));
+                                txt_rss.setSelected(true);
+                                txt_rss.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+                                txt_rss.setText(rss);
+                            }else {
+                                ly_header.setVisibility(View.GONE);
+                            }
                         }
+
+
                         rssTimer();
                     });
                 } else {
@@ -515,8 +544,9 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
                 e.printStackTrace();
             }
         }catch (Exception e){
-
+            e.printStackTrace();
         }
+
         runOnUiThread(()->{
             channel_list.requestFocus();
             channel_list.setSelection(sub_pos);
@@ -544,71 +574,6 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
         long next = SystemClock.uptimeMillis() + 1000;
         rssHandler.postAtTime(rssTicker, next);
     }
-
-
-//    private void getEpg(){
-//        mHandler.removeCallbacks(mUpdateTimeTask);
-//        try {
-//            String map = MyApp.instance.getIptvclient().getShortEPG(MyApp.user,MyApp.pass,
-//                    mStream_id,4);
-//            Log.e(getClass().getSimpleName(),map);
-//            map=map.replaceAll("[^\\x00-\\x7F]", "");
-//            if (!map.contains("null_error_response")){
-//                JSONObject jsonObject = new JSONObject(map);
-//                JSONArray maps = (JSONArray) jsonObject.get("epg_listings");
-//                epgModelList = new ArrayList<>();
-//                if(maps!=null && maps.length()>0){
-//                    for(int i = 0;i<maps.length();i++){
-//                        try {
-//                            JSONObject e_p = (JSONObject) maps.get(i);
-//                            EpgModel epgModel = new EpgModel();
-//                            epgModel.setId((String)e_p.get("id"));
-//                            epgModel.setCh_id((String)e_p.get("channel_id"));
-//                            epgModel.setCategory((String)e_p.get("epg_id"));
-//                            epgModel.setT_time((String)e_p.get("start"));
-//                            epgModel.setT_time_to((String)e_p.get("end"));
-//                            byte[] desc_byte = Base64.decode((String)e_p.get("description"), Base64.DEFAULT);
-//                            String desc = new String(desc_byte);
-//                            epgModel.setDescr(desc);
-//                            byte[] title_byte = Base64.decode((String)e_p.get("title"), Base64.DEFAULT);
-//                            String title = new String(title_byte);
-//                            epgModel.setName(title);
-//                            epgModel.setStart_timestamp(e_p.get("start_timestamp").toString());
-//                            epgModel.setStop_timestamp(e_p.get("stop_timestamp").toString());
-//                            int duration = ((Integer.parseInt(e_p.get("stop_timestamp").toString())) - (Integer.parseInt(e_p.get("start_timestamp").toString())));
-//                            epgModel.setDuration(duration);
-//                            if(e_p.has("has_archive")) {
-//                                Double d = Double.parseDouble(e_p.get("has_archive").toString());
-//                                epgModel.setMark_archive(d.intValue());
-//                            }
-//                            epgModelList.add(epgModel);
-//                        }catch (Exception e){
-//                            Log.e("error","epg_parse_error");
-//                        }
-//                    }
-//                }
-//                runOnUiThread(()->{
-//                    if(is_full){
-//                        MyApp.is_first = true;
-//                        mHandler.removeCallbacks(mUpdateTimeTask);
-//                        updateProgressBar();
-//                        ly_bottom.setVisibility(View.VISIBLE);
-//                        if(channels.get(sub_pos).getStream_icon()!=null && !channels.get(sub_pos).getStream_icon().isEmpty()){
-//                            Picasso.with(this).load(channels.get(sub_pos).getStream_icon())
-//                                    .into(channel_logo);
-//                            channel_logo.setVisibility(View.VISIBLE);
-//                        }else {
-//                            channel_logo.setVisibility(View.GONE);
-//                        }
-//                        listTimer();
-//                    }
-//                    printEpgData();
-//                });
-//            }
-//        }catch (Exception e){
-//
-//        }
-//    }
     int epg_time;
 //    int i = 0;
     private void EpgTimer(){
@@ -754,7 +719,62 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
             case R.id.ly_tv_schedule:
                 startActivity(new Intent(this, WebViewActivity.class));
                 break;
+            case R.id.ly_rec:
+                if(is_recording){
+                    ShowStopDlg();
+                }else {
+                    ShowRecordingDlg();
+                }
+                break;
         }
+    }
+
+    private void ShowRecordingDlg(){
+        INPUT_NAME = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())+channels.get(sub_pos).getName().replaceAll("\\s+","");
+        Log.e("file_name",INPUT_NAME);
+        RecordingDlg recordingDlg = new RecordingDlg(this, INPUT_NAME, new RecordingDlg.DialogUpdateListener() {
+            @Override
+            public void OnUpdateNowClick(Dialog dialog, String channel_name, int duration,String time,boolean is_checked) {
+                dialog.dismiss();
+                INPUT_NAME = channel_name;
+                RecordingChannels(duration,time,is_checked);
+            }
+
+            @Override
+            public void OnUpdateSkipClick(Dialog dialog, String channel_name, int duration,String time,boolean is_checked) {
+                dialog.dismiss();
+            }
+        });
+        recordingDlg.show();
+    }
+
+
+    private void ShowStopDlg(){
+        StopRecordingDlg stopRecordingDlg = new StopRecordingDlg(this, "",new StopRecordingDlg.DialogUpdateListener() {
+            @Override
+            public void OnUpdateNowClick(Dialog dialog) {
+                dialog.dismiss();
+                StopRecord();
+            }
+
+            @Override
+            public void OnUpdateSkipClick(Dialog dialog) {
+                dialog.dismiss();
+            }
+        });
+        stopRecordingDlg.show();
+    }
+
+    private void RecordingChannels(int duration,String time,boolean is_checked){
+        is_recording = true;
+        INPUT_FILE = MyApp.instance.getIptvclient().buildLiveStreamURL(MyApp.user, MyApp.pass,
+                mStream_id,"ts");
+        MyApp.instance.scheduleJob(duration,time,is_checked);
+    }
+
+    private void StopRecord(){
+        is_recording = false;
+        MyApp.instance.stopMyJob();
     }
 
     private void scrollToLast(final ListView listView, final int position) {
@@ -1026,7 +1046,11 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
                                 showAudioOptions();
                                 break;
                             case 4:
-
+                                if(is_recording){
+                                    ShowStopDlg();
+                                }else {
+                                    ShowRecordingDlg();
+                                }
                                 break;
                             case 5:
                                 startActivity(new Intent(PreviewChannelExoActivity.this,WebViewActivity.class));
@@ -1484,7 +1508,7 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
         //set
         MyApp.instance.getPreference().put(Constants.getRecentChannels(), recent_series_names);
         contentUri = MyApp.instance.getIptvclient().buildLiveStreamURL(MyApp.user, MyApp.pass,
-                mStream_id,"m3u8");
+                mStream_id,"ts");
         if(channels.get(sub_pos).getStream_icon()!=null && !channels.get(sub_pos).getStream_icon().isEmpty()){
             Picasso.with(PreviewChannelExoActivity.this).load(channels.get(sub_pos).getStream_icon())
                     .into(channel_logo);

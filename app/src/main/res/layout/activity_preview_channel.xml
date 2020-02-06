@@ -123,8 +123,7 @@
                         android:layout_marginBottom="10sp"
                         android:clickable="true"
                         android:focusable="true"
-                        android:focusableInTouchMode="true"
-                        android:descendantFocusability="afterDescendants"
+                        android:focusableInTouchMode="false"
                         android:id="@+id/channel_list"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -507,7 +506,7 @@
                         android:paddingLeft="10sp"
                         android:background="@drawable/yellow_bg"
                         android:layout_width="0sp"
-                        android:layout_weight="0.3"
+                        android:layout_weight="0.25"
                         android:layout_height="match_parent">
                         <TextView
                             android:textSize="15sp"
@@ -541,8 +540,19 @@
                         android:gravity="center"
                         android:orientation="horizontal">
                         <LinearLayout
-                            android:id="@+id/ly_audio_delay"
+                            android:id="@+id/ly_rec"
                             android:layout_alignParentRight="true"
+                            android:layout_width="36sp"
+                            android:layout_height="36sp"
+                            android:layout_gravity="center">
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/rec_white" />
+                        </LinearLayout>
+                        <LinearLayout
+                            android:id="@+id/ly_audio_delay"
+                            android:layout_toLeftOf="@+id/ly_rec"
                             android:layout_width="36sp"
                             android:layout_height="36sp"
                             android:layout_gravity="center">
@@ -551,7 +561,6 @@
                                 android:layout_height="match_parent"
                                 android:src="@drawable/audio_delay" />
                         </LinearLayout>
-
                         <LinearLayout
                             android:id="@+id/ly_resolution"
                             android:layout_toLeftOf="@+id/ly_audio_delay"
@@ -627,7 +636,7 @@
         android:layout_alignParentRight="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/ly_header"
         android:layout_width="match_parent"
         android:orientation="horizontal"
@@ -658,8 +667,7 @@
             android:scrollHorizontally="true"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:layout_toEndOf="@+id/image_icon"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
-    </RelativeLayout>
+    </LinearLayout>
 </RelativeLayout>

@@ -1,10 +1,13 @@
 package com.gold.kds517.supacombonewstb.activity;
 
-import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,6 +16,8 @@ import android.os.StrictMode;
 import android.os.SystemClock;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -48,6 +53,7 @@ import org.videolan.libvlc.LibVLC;
 import org.videolan.libvlc.Media;
 import org.videolan.libvlc.MediaPlayer;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -106,6 +112,7 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
     private static final int SURFACE_4_3 = 4;
     private static final int SURFACE_ORIGINAL = 5;
     private static int CURRENT_SIZE = SURFACE_BEST_FIT;
+    boolean is_recording = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -191,6 +198,7 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
         title_txt.setText(getIntent().getStringExtra("title"));
         cont_url = getIntent().getStringExtra("url");
         title = getIntent().getStringExtra("title");
+        is_recording = getIntent().getBooleanExtra("is_recording",false);
         try {
             Picasso.with(this).load(getIntent().getStringExtra("img"))
                     .placeholder(R.drawable.icon_default)
@@ -422,6 +430,13 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
                     String finalMsg = msg;
                     runOnUiThread(()->{
                         String rss_feed = "                 "+ finalMsg +"                 ";
+                        Paint paint = new Paint();
+                        paint.setTextSize(25);
+                        paint.setColor(Color.BLACK);
+                        paint.setStyle(Paint.Style.FILL);
+                        paint.setTypeface(Typeface.DEFAULT);
+                        Rect result = new Rect();
+                        paint.getTextBounds(rss_feed, 0, rss_feed.length(), result);
                         if(rss.equalsIgnoreCase(rss_feed)){
                             ly_header.setVisibility(View.GONE);
 //                            image_icon.setVisibility(View.GONE);
@@ -433,15 +448,36 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
                             ly_header.setVisibility(View.VISIBLE);
                         }
 
-                        if(is_msg){
-                            ly_header.setVisibility(View.VISIBLE);
-                            txt_rss.setText(rss);
-                            Animation bottomToTop = AnimationUtils.loadAnimation(this, R.anim.bottom_to_top);
-                            txt_rss.clearAnimation();
-                            txt_rss.startAnimation(bottomToTop);
+                        int divide = (MyApp.SCREEN_WIDTH)/Utils.dp2px(this,result.width());
+                        Log.e("divide",divide+"");
+                        if(divide>=1){
+                            if(is_msg){
+                                ly_header.setVisibility(View.VISIBLE);
+                                txt_rss.setText(rss);
+                                Animation bottomToTop = AnimationUtils.loadAnimation(this, R.anim.bottom_to_top);
+                                txt_rss.clearAnimation();
+                                txt_rss.startAnimation(bottomToTop);
+                            }else {
+                                ly_header.setVisibility(View.GONE);
+                            }
                         }else {
-                            ly_header.setVisibility(View.GONE);
+                            if(is_msg){
+                                ly_header.setVisibility(View.VISIBLE);
+                                for(int i =0;i<divide+1;i++){
+                                    rss_feed += rss_feed;
+                                }
+                                Log.e("rss2",rss);
+//                            txt_rss.setText(rss);
+//                            txt_rss.startAnimation(AnimationUtils.loadAnimation(getApplicationContext(), R.anim.marquee1));
+                                txt_rss.setSelected(true);
+                                txt_rss.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+                                txt_rss.setText(rss);
+                            }else {
+                                ly_header.setVisibility(View.GONE);
+                            }
                         }
+
+
                         rssTimer();
                     });
                 } else {
@@ -451,9 +487,8 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
                 e.printStackTrace();
             }
         }catch (Exception e){
-
+            e.printStackTrace();
         }
-
     }
     int rss_time;
     private void rssTimer() {
@@ -515,9 +550,13 @@ public class VideoPlayActivity extends AppCompatActivity implements  SeekBar.OnS
             vout.attachViews(this);
 //            vout.setSubtitlesView(tv_subtitle);
 
-
             Log.e("VideoPlay",path);
-            Media m = new Media(libvlc, Uri.parse(path));
+            Media m;
+            if(is_recording){
+                m = new Media(libvlc, Uri.fromFile(new File(path)));
+            }else {
+                m = new Media(libvlc, Uri.parse(path));
+            }
             mMediaPlayer.setMedia(m);
             m.release();
             mMediaPlayer.play();

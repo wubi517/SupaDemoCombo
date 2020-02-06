@@ -20,6 +20,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 public class Constants {
     public static final String APP_INFO = "app_info";
@@ -37,6 +38,7 @@ public class Constants {
     public static final String OSD_TIME = "osd_time";
     public static final String IS_PHONE = "is_phone";
     public static final String TIME_FORMAT = "time_format";
+    private static final String RECORDING_CHANNELS = "recording_channels";
     public static final String INVISIBLE_LIVE_CATEGORIES0 = "invisible_vod_categories";
     public static final String INVISIBLE_VOD_CATEGORIES0 = "invisible_live_categories";
     public static final String INVISIBLE_SERIES_CATEGORIES0 = "invisible_series_categories";
@@ -66,7 +68,6 @@ public class Constants {
     public static  SimpleDateFormat date_format = new SimpleDateFormat("d MMM hh:mm a");
     public static SimpleDateFormat dateFormat1 = new SimpleDateFormat("MMM d, hh:mm");
     public static SimpleDateFormat welcome_format = new SimpleDateFormat("EEE,  dd  MMM, yyyy");
-
 
     public static void getTimeFormat(){
         String timeformat = (String) MyApp.instance.getPreference().get(Constants.TIME_FORMAT);
@@ -127,6 +128,9 @@ public class Constants {
     }
     public static String getRecentChannels(){
         return RECENT_CHANNELS+MyApp.firstServer.getValue();
+    }
+    public static String getRecordingChannels(){
+        return RECORDING_CHANNELS+MyApp.firstServer.getValue();
     }
     public static String getRecentMovies(){
         return RECENT_MOVIES+MyApp.firstServer.getValue();

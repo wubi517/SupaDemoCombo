@@ -6,7 +6,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -15,6 +19,7 @@ import android.os.SystemClock;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -39,14 +44,18 @@ import com.gold.kds517.supacombonewstb.R;
 import com.gold.kds517.supacombonewstb.adapter.MainListAdapter;
 import com.gold.kds517.supacombonewstb.apps.Constants;
 import com.gold.kds517.supacombonewstb.apps.MyApp;
+import com.gold.kds517.supacombonewstb.apps.MyJobService;
 import com.gold.kds517.supacombonewstb.dialog.OSDDlg;
 import com.gold.kds517.supacombonewstb.dialog.PackageDlg;
 import com.gold.kds517.supacombonewstb.dialog.PinDlg;
+import com.gold.kds517.supacombonewstb.dialog.RecordingDlg;
 import com.gold.kds517.supacombonewstb.dialog.SearchDlg;
+import com.gold.kds517.supacombonewstb.dialog.StopRecordingDlg;
 import com.gold.kds517.supacombonewstb.listner.SimpleGestureFilter;
 import com.gold.kds517.supacombonewstb.models.EPGChannel;
 import com.gold.kds517.supacombonewstb.models.EPGEvent;
 import com.gold.kds517.supacombonewstb.models.FullModel;
+import com.gold.kds517.supacombonewstb.models.RecordingModel;
 import com.gold.kds517.supacombonewstb.utils.Utils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -63,6 +72,7 @@ import org.videolan.libvlc.Media;
 import org.videolan.libvlc.MediaPlayer;
 
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -70,6 +80,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
 
+import static com.gold.kds517.supacombonewstb.apps.MyApp.INPUT_FILE;
+import static com.gold.kds517.supacombonewstb.apps.MyApp.INPUT_NAME;
+import static com.gold.kds517.supacombonewstb.apps.MyApp.is_recording;
 import static java.lang.Integer.parseInt;
 
 public class PreviewChannelActivity extends AppCompatActivity implements  AdapterView.OnItemClickListener, View.OnClickListener, SurfaceHolder.Callback,
@@ -84,8 +97,8 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
     public static SurfaceView surfaceView;
     SurfaceView remote_subtitles_surface;
     private SurfaceHolder holder;
-    LinearLayout def_lay,ly_bottom,ly_resolution,ly_audio,ly_subtitle,ly_audio_delay;
-    RelativeLayout ly_header;
+    LinearLayout def_lay,ly_bottom,ly_resolution,ly_audio,ly_subtitle,ly_audio_delay,ly_rec,ly_header;
+//    RelativeLayout ly_header;
     MediaPlayer.TrackDescription[] traks;
     MediaPlayer.TrackDescription[] subtraks;
     String ratio;
@@ -200,15 +213,18 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
 
         ly_header = findViewById(R.id.ly_header);
         ly_audio = findViewById(R.id.ly_audio);
+        ly_rec = findViewById(R.id.ly_rec);
         ly_resolution = findViewById(R.id.ly_resolution);
         ly_subtitle = findViewById(R.id.ly_subtitle);
 
         ly_subtitle.setOnClickListener(this);
         ly_resolution.setOnClickListener(this);
         ly_audio.setOnClickListener(this);
+        ly_rec.setOnClickListener(this);
 
         txt_rss = findViewById(R.id.txt_rss);
         txt_rss.setSingleLine(true);
+        txt_rss.setEllipsize(null);
 
         findViewById(R.id.ly_fav).setOnClickListener(this);
         findViewById(R.id.btn_search).setOnClickListener(this);
@@ -303,6 +319,13 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
                     String finalMsg = msg;
                     runOnUiThread(()->{
                         String rss_feed = "                 "+ finalMsg +"                 ";
+                        Paint paint = new Paint();
+                        paint.setTextSize(25);
+                        paint.setColor(Color.BLACK);
+                        paint.setStyle(Paint.Style.FILL);
+                        paint.setTypeface(Typeface.DEFAULT);
+                        Rect result = new Rect();
+                        paint.getTextBounds(rss_feed, 0, rss_feed.length(), result);
                         if(rss.equalsIgnoreCase(rss_feed)){
                             ly_header.setVisibility(View.GONE);
 //                            image_icon.setVisibility(View.GONE);
@@ -314,15 +337,36 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
                             ly_header.setVisibility(View.VISIBLE);
                         }
 
-                        if(is_msg){
-                            ly_header.setVisibility(View.VISIBLE);
-                            txt_rss.setText(rss);
-                            Animation bottomToTop = AnimationUtils.loadAnimation(this, R.anim.bottom_to_top);
-                            txt_rss.clearAnimation();
-                            txt_rss.startAnimation(bottomToTop);
+                        int divide = (MyApp.SCREEN_WIDTH)/Utils.dp2px(PreviewChannelActivity.this,result.width());
+                        Log.e("divide",divide+"");
+                        if(divide>=1){
+                            if(is_msg){
+                                ly_header.setVisibility(View.VISIBLE);
+                                txt_rss.setText(rss);
+                                Animation bottomToTop = AnimationUtils.loadAnimation(this, R.anim.bottom_to_top);
+                                txt_rss.clearAnimation();
+                                txt_rss.startAnimation(bottomToTop);
+                            }else {
+                                ly_header.setVisibility(View.GONE);
+                            }
                         }else {
-                            ly_header.setVisibility(View.GONE);
+                            if(is_msg){
+                                ly_header.setVisibility(View.VISIBLE);
+                                for(int i =0;i<divide+1;i++){
+                                    rss_feed += rss_feed;
+                                }
+                                Log.e("rss2",rss);
+//                            txt_rss.setText(rss);
+//                            txt_rss.startAnimation(AnimationUtils.loadAnimation(getApplicationContext(), R.anim.marquee1));
+                                txt_rss.setSelected(true);
+                                txt_rss.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+                                txt_rss.setText(rss);
+                            }else {
+                                ly_header.setVisibility(View.GONE);
+                            }
                         }
+
+
                         rssTimer();
                     });
                 } else {
@@ -538,6 +582,13 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
             case R.id.ly_tv_schedule:
                 startActivity(new Intent(this, WebViewActivity.class));
                 break;
+            case R.id.ly_rec:
+                if(is_recording){
+                    ShowStopDlg();
+                }else {
+                    ShowRecordingDlg();
+                }
+                break;
         }
     }
 
@@ -684,6 +735,7 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
 
     @Override
     public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+//        Toast.makeText(PreviewChannelActivity.this,"Long Click",Toast.LENGTH_SHORT).show();
         return false;
     }
 
@@ -924,6 +976,13 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
                                 break;
                             case 6:
                                 startActivity(new Intent(PreviewChannelActivity.this,WebViewActivity.class));
+                                break;
+                            case 7:
+                                if(is_recording){
+                                    ShowStopDlg();
+                                }else {
+                                    ShowRecordingDlg();
+                                }
                                 break;
                         }
                     });
@@ -1279,6 +1338,54 @@ public class PreviewChannelActivity extends AppCompatActivity implements  Adapte
             }
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    private void ShowRecordingDlg(){
+        INPUT_NAME = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())+channels.get(sub_pos).getName().replaceAll("\\s+","");
+        Log.e("file_name",INPUT_NAME);
+        RecordingDlg recordingDlg = new RecordingDlg(this, INPUT_NAME, new RecordingDlg.DialogUpdateListener() {
+            @Override
+            public void OnUpdateNowClick(Dialog dialog, String channel_name, int duration,String time,boolean is_checked) {
+                dialog.dismiss();
+                INPUT_NAME = channel_name;
+                RecordingChannels(duration,time,is_checked);
+            }
+
+            @Override
+            public void OnUpdateSkipClick(Dialog dialog, String channel_name, int duration,String time,boolean is_checked) {
+                dialog.dismiss();
+            }
+        });
+        recordingDlg.show();
+    }
+
+
+    private void ShowStopDlg(){
+        StopRecordingDlg stopRecordingDlg = new StopRecordingDlg(this, "",new StopRecordingDlg.DialogUpdateListener() {
+            @Override
+            public void OnUpdateNowClick(Dialog dialog) {
+                dialog.dismiss();
+                StopRecord();
+            }
+
+            @Override
+            public void OnUpdateSkipClick(Dialog dialog) {
+                dialog.dismiss();
+            }
+        });
+        stopRecordingDlg.show();
+    }
+
+    private void RecordingChannels(int duration,String time,boolean is_checked){
+        is_recording = true;
+        INPUT_FILE = MyApp.instance.getIptvclient().buildLiveStreamURL(MyApp.user, MyApp.pass,
+                mStream_id,"ts");
+        MyApp.instance.scheduleJob(duration,time,is_checked);
+    }
+
+    private void StopRecord(){
+        is_recording = false;
+        MyApp.instance.stopMyJob();
     }
 
     private void delayTimer(){

@@ -3,17 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.gold.kds517.supacombonewstb">
 
-
     <uses-feature
         android:name="android.hardware.touchscreen"
-        android:required="false"/>
+        android:required="false" />
     <uses-feature
         android:name="android.software.leanback"
-        android:required="false"/>
+        android:required="false" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /> <!-- <uses-permission android:name="android.permission.READ_PHONE_STATE" /> -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -22,37 +22,47 @@
     <application
         android:name=".apps.MyApp"
         android:allowBackup="true"
+        android:banner="@drawable/icon"
         android:hardwareAccelerated="true"
         android:icon="@drawable/icon"
         android:label="@string/app_name"
-        android:banner="@drawable/icon"
         android:roundIcon="@drawable/icon"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
         tools:ignore="GoogleAppIndexingWarning,UnusedAttribute">
-        <activity android:name=".activity.GuideActivityExtra"
+        <activity android:name=".activity.NotificationActivity"/>
+        <activity android:name=".activity.RecordingActivity"
             android:screenOrientation="landscape"
             android:theme="@style/AppTheme.NoActionBar"/>
-        <activity android:name=".activity.TvGuideActivity"
+        <activity
+            android:name=".activity.GuideActivityExtra"
             android:screenOrientation="landscape"
-            android:theme="@style/AppTheme.NoActionBar"/>
-        <activity android:name=".activity.LiveExoPlayActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".activity.TvGuideActivity"
             android:screenOrientation="landscape"
-            android:theme="@style/AppTheme.NoActionBar"/>
-        <activity android:name=".activity.LiveIjkPlayActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".activity.LiveExoPlayActivity"
             android:screenOrientation="landscape"
-            android:theme="@style/AppTheme.NoActionBar"/>
-        <activity android:name=".activity.LivePlayActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".activity.LiveIjkPlayActivity"
             android:screenOrientation="landscape"
-            android:theme="@style/AppTheme.NoActionBar"/>
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".activity.LivePlayActivity"
+            android:screenOrientation="landscape"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".MainActivity"
             android:screenOrientation="landscape"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -166,6 +176,11 @@
                 <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
+        <service
+            android:name=".apps.MyJobService"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <meta-data
             android:name="android.support.VERSION"

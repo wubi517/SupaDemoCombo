@@ -31,6 +31,22 @@
         <item>Audio Delay</item>
         <item>Screen ratio</item>
         <item>TV Schedule</item>
+        <item>Recording</item>
+    </string-array>
+    <string-array name="package_list_exo">
+        <item>Favorite</item>
+        <item>Search</item>
+        <item>Subtitle</item>
+        <item>Audio Track</item>
+        <item>Recording</item>
+        <item>TV Schedule</item>
+    </string-array>
+    <string-array name="package_list_ijk">
+        <item>Favorite</item>
+        <item>Search</item>
+        <item>Screen ratio</item>
+        <item>Recording</item>
+        <item>TV Schedule</item>
     </string-array>
     <string-array name="vod_package">
         <item>Add to Fav</item>
