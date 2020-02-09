@@ -17,13 +17,15 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 
 import com.gold.kds517.supacombonewstb.R;
+import com.gold.kds517.supacombonewstb.apps.Constants;
 
+import java.text.ParseException;
 import java.util.Calendar;
+
 
 public class RecordingDlg extends Dialog {
     private String channel_name;
     private int duration;
-    private TimePickerDialog pickerDialog;
     private LinearLayout ly_start;
     private TextView txt_start;
     private CheckBox checkBox;
@@ -54,39 +56,11 @@ public class RecordingDlg extends Dialog {
         ly_start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final Calendar myCalender = Calendar.getInstance();
-                int hour = myCalender.get(Calendar.HOUR_OF_DAY);
-                int minute = myCalender.get(Calendar.MINUTE);
-                pickerDialog = new TimePickerDialog(context,android.R.style.Theme_Holo_Light_Dialog_NoActionBar,
-                        new TimePickerDialog.OnTimeSetListener() {
-                            @Override
-                            public void onTimeSet(TimePicker tp, int sHour, int sMinute) {
-                                if (tp.isShown()) {
-                                    myCalender.set(Calendar.HOUR_OF_DAY, sHour);
-                                    myCalender.set(Calendar.MINUTE, sMinute);
-
-                                }
-                                String shour = "";
-                                String smin = "";
-                                if(sHour==0){
-                                    shour = "00";
-                                }else if(sHour<10){
-                                    shour = "0"+sHour;
-                                }else {
-                                    shour = sHour+"";
-                                }
-                                if(sMinute==0){
-                                    smin = "00";
-                                }else if(sMinute<10){
-                                    smin = "0"+sMinute;
-                                }else {
-                                    smin = sMinute+"";
-                                }
-                                txt_start.setText(shour + ":" + smin);
-                            }
-                        }, hour, minute, true);
-                pickerDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-                pickerDialog .show();
+                try {
+                    showPickerDialog(false);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
             }
         });
         txt_name.setText(channel_name);
@@ -109,6 +83,30 @@ public class RecordingDlg extends Dialog {
             }
         });
     }
+
+    private void showPickerDialog(boolean is24HrView) throws ParseException {
+
+        final Calendar myCalender = Calendar.getInstance();
+        int hour = myCalender.get(Calendar.HOUR_OF_DAY);
+        int minute = myCalender.get(Calendar.MINUTE);
+        CustomTimePickerDialog dialog = new CustomTimePickerDialog(getContext(),android.R.style.Theme_Holo_Light_Dialog_NoActionBar,mTimePickerListener, hour, minute, is24HrView, (dialog1, schedul_time) -> {
+            dialog1.dismiss();
+            txt_start.setText(schedul_time);
+        });
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        dialog.show();
+//        dialog.getButton(TimePickerDialog.BUTTON_POSITIVE).setVisibility(View.GONE);
+//        dialog.getButton(TimePickerDialog.BUTTON_NEGATIVE).setVisibility(View.GONE);
+    }
+
+
+    private TimePickerDialog.OnTimeSetListener mTimePickerListener = new TimePickerDialog.OnTimeSetListener() {
+
+        @Override
+        public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+            txt_start.setText(Constants.GetCorrectFormatTime(hourOfDay,minute));
+        }
+    };
 
     public interface DialogUpdateListener {
         public void OnUpdateNowClick(Dialog dialog, String channel_name, int duration,String time,boolean is_checked);

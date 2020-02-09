@@ -279,21 +279,6 @@ public class Constants {
         else return clockFormat.format(string);
     }
 
-    public static String GetBaseURL(Context mcontext)
-    {
-        SharedPreferences serveripdetails = mcontext.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        String base_url=serveripdetails.getString("ip","");
-        base_url=base_url+"player_api.php?";
-        return  base_url;
-    }
-
-    public static String GetAppDomain(Context mcontext)
-    {
-        String base_url="";
-        SharedPreferences serveripdetails = mcontext.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        base_url=serveripdetails.getString("ip","");
-        return  base_url;
-    }
 
     public static String GetIcon(Context context){
         String app_icon="";
@@ -358,18 +343,6 @@ public class Constants {
         app_icon=serveripdetails.getString("dual_screen","");
         return  app_icon;
     }
-    public static String GetAutho2(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("autho2","");
-        return  app_icon;
-    }
-    public static String GetList(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("list","");
-        return  app_icon;
-    }
     public static String GetUrl3(Context context){
         String app_icon="";
         SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
@@ -388,141 +361,26 @@ public class Constants {
         app_icon=serveripdetails.getString("url1","");
         return  app_icon;
     }
-    public static String GetUrl(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("url","");
-        return  app_icon;
-    }
 
-    public static String GetKey(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("key","");
-        return  app_icon;
-    }
-
-    public static String Get0(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("a0","");
-        return  app_icon;
-    }
-    public static String Get1(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("a1","");
-        return  app_icon;
-    }
-    public static String Get2(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("a2","");
-        return  app_icon;
-    }
-    public static String Get3(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("a3","");
-        return  app_icon;
-    }
-
-    public static String Get4(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("a4","");
-        return  app_icon;
-    }
-    public static String Get5(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("a5","");
-        return  app_icon;
-    }
-    public static String Get6(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("a6","");
-        return  app_icon;
-    }
-    public static String Get7(Context context){
-        String app_icon="";
-        SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
-        app_icon=serveripdetails.getString("a7","");
-        return  app_icon;
-    }
-
-    public static String GetCurrentTimeByTimeZone(String pattern,String time_zone) {
-
-        Calendar c = Calendar.getInstance();
-        SimpleDateFormat df = new SimpleDateFormat(pattern);
-        df.setTimeZone(TimeZone.getTimeZone(time_zone)); //
-        return df.format(c.getTime());
-    }
-
-    public static String GetCurrentDateByTimeZone(String pattern,String time_zone) {
-
-        Calendar c = Calendar.getInstance();
-        SimpleDateFormat df = new SimpleDateFormat(pattern);
-        df.setTimeZone(TimeZone.getTimeZone(time_zone)); //
-        return df.format(c.getTime());
-    }
-
-
-    public static String GetCurrentTime(String pattern) {
-
-        Calendar c = Calendar.getInstance();
-        SimpleDateFormat df = new SimpleDateFormat(pattern);
-        return df.format(c.getTime());
-    }
-
-    public static String GetCurrentDate(String pattern) {
-
-        Calendar c = Calendar.getInstance();
-        SimpleDateFormat df = new SimpleDateFormat(pattern);
-        return df.format(c.getTime());
-    }
-
-    public static long getTimeDiffMinutes(String start_time, String end_time, String pattern) {
-        SimpleDateFormat format = new SimpleDateFormat(pattern);
-        Date d1 = null;
-        Date d2 = null;
-        long diffMinutes = 0;
-        try {
-            d1 = format.parse(start_time);
-            d2 = format.parse(end_time);
-
-            long diff = d2.getTime() - d1.getTime();
-            diffMinutes = diff / (60 * 1000);
-            return diffMinutes;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return diffMinutes;
+    public static String GetCorrectFormatTime(int hour,int min){
+        String current_time="";
+        String shour="";
+        String smin ="";
+        if(hour==0){
+            shour = "00";
+        }else if(hour<10){
+            shour = "0"+hour;
+        }else {
+            shour = hour+"";
         }
-    }
-
-    public static boolean checktimings(String current_time, String endtime, String pattern) {
-
-        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-
-        try {
-            Date date1 = sdf.parse(current_time);
-            Date date2 = sdf.parse(endtime);
-
-            if (date1.before(date2)) {
-                return true;
-            } else {
-
-                return false;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        if(min==0){
+            smin="00";
+        }else if(min<10){
+            smin = "0"+min;
+        }else {
+            smin = min+"";
         }
-        return false;
-    }
-
-    public static String GetDecodedString(String text) {
-        return text;
+        current_time = shour+":"+smin;
+        return current_time;
     }
 }
