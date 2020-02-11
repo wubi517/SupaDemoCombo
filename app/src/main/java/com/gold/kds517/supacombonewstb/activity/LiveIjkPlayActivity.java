@@ -303,6 +303,7 @@ public class LiveIjkPlayActivity extends AppCompatActivity implements  SeekBar.O
                         paint.setTypeface(Typeface.DEFAULT);
                         Rect result = new Rect();
                         paint.getTextBounds(rss_feed, 0, rss_feed.length(), result);
+                        float width = paint.measureText(rss_feed, 0, rss_feed.length());
                         if(rss.equalsIgnoreCase(rss_feed)){
                             lay_header.setVisibility(View.GONE);
 //                            image_icon.setVisibility(View.GONE);
@@ -314,9 +315,8 @@ public class LiveIjkPlayActivity extends AppCompatActivity implements  SeekBar.O
                             lay_header.setVisibility(View.VISIBLE);
                         }
 
-                        int divide = (MyApp.SCREEN_WIDTH)/Utils.dp2px(this,result.width());
-                        Log.e("divide",divide+"");
-                        if(divide>=1){
+                        int divide = (MyApp.SCREEN_WIDTH)/Utils.dp2px(this,(int) width);
+                        if(divide>1){
                             if(is_msg){
                                 lay_header.setVisibility(View.VISIBLE);
                                 txt_rss.setText(rss);
@@ -337,7 +337,7 @@ public class LiveIjkPlayActivity extends AppCompatActivity implements  SeekBar.O
 //                            txt_rss.startAnimation(AnimationUtils.loadAnimation(getApplicationContext(), R.anim.marquee1));
                                 txt_rss.setSelected(true);
                                 txt_rss.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-                                txt_rss.setText(rss);
+                                txt_rss.setText(rss_feed);
                             }else {
                                 lay_header.setVisibility(View.GONE);
                             }

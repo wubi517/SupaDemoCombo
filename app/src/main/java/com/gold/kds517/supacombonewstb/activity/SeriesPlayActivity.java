@@ -437,6 +437,7 @@ public class SeriesPlayActivity extends AppCompatActivity implements  SeekBar.On
                         paint.setTypeface(Typeface.DEFAULT);
                         Rect result = new Rect();
                         paint.getTextBounds(rss_feed, 0, rss_feed.length(), result);
+                        float width = paint.measureText(rss_feed, 0, rss_feed.length());
                         if(rss.equalsIgnoreCase(rss_feed)){
                             ly_header.setVisibility(View.GONE);
 //                            image_icon.setVisibility(View.GONE);
@@ -448,9 +449,9 @@ public class SeriesPlayActivity extends AppCompatActivity implements  SeekBar.On
                             ly_header.setVisibility(View.VISIBLE);
                         }
 
-                        int divide = (MyApp.SCREEN_WIDTH)/Utils.dp2px(this,result.width());
+                        int divide = (MyApp.SCREEN_WIDTH)/Utils.dp2px(this,(int) width);
                         Log.e("divide",divide+"");
-                        if(divide>=1){
+                        if(divide>1){
                             if(is_msg){
                                 ly_header.setVisibility(View.VISIBLE);
                                 txt_rss.setText(rss);
@@ -471,7 +472,7 @@ public class SeriesPlayActivity extends AppCompatActivity implements  SeekBar.On
 //                            txt_rss.startAnimation(AnimationUtils.loadAnimation(getApplicationContext(), R.anim.marquee1));
                                 txt_rss.setSelected(true);
                                 txt_rss.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-                                txt_rss.setText(rss);
+                                txt_rss.setText(rss_feed);
                             }else {
                                 ly_header.setVisibility(View.GONE);
                             }
