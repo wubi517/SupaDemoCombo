@@ -7,15 +7,15 @@
     android:background="@drawable/setting_list_bg">
     <ImageView
         android:id="@+id/setting_image"
-        android:layout_width="30sp"
-        android:layout_height="30sp" />
+        android:layout_width="25sp"
+        android:layout_height="25sp" />
     <TextView
-        android:layout_marginLeft="10dp"
+        android:layout_marginLeft="7dp"
         android:layout_gravity="center"
         android:id="@+id/setting_item"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/num_color1"
-        android:textSize="20sp"
+        android:textSize="18sp"
         android:text="Reload Portal" />
 </LinearLayout>

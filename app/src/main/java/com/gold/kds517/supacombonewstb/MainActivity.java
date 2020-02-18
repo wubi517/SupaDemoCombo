@@ -90,6 +90,9 @@ public class MainActivity extends Activity implements View.OnClickListener{
         if(MyApp.instance.getPreference().get(Constants.TIME_FORMAT)==null){
             MyApp.instance.getPreference().put(Constants.TIME_FORMAT,"12hour");
         }
+        if(MyApp.instance.getPreference().get(Constants.getStreamFormat())==null){
+            MyApp.instance.getPreference().put(Constants.getStreamFormat(),"ts");
+        }
 
         Constants.getTimeFormat();
         serveripdetails = this.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
@@ -293,6 +296,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
+
     private void getUpdate(){
         MyApp.instance.versionCheck();
         double code = 0.0;
@@ -321,7 +325,6 @@ public class MainActivity extends Activity implements View.OnClickListener{
             startNextActivity();
         }
     }
-
     @Override
     public void onClick(View v) {
         switch (v.getId()){

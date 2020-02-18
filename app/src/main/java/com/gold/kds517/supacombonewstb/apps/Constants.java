@@ -38,6 +38,7 @@ public class Constants {
     public static final String OSD_TIME = "osd_time";
     public static final String IS_PHONE = "is_phone";
     public static final String TIME_FORMAT = "time_format";
+    private static final String STREAM_FORMAT = "stream_format";
     private static final String RECORDING_CHANNELS = "recording_channels";
     public static final String INVISIBLE_LIVE_CATEGORIES0 = "invisible_vod_categories";
     public static final String INVISIBLE_VOD_CATEGORIES0 = "invisible_live_categories";
@@ -55,6 +56,7 @@ public class Constants {
     public static String All="All";
     public static String Favorites="Favorites";
     public static final String CURRENT_PLAYER0 = "current_player";
+    private static final String EXTERNAL_PLAYER = "external_player";
     private static final String RECENT_CHANNELS="RECENT_CHANNELS";
     private static final String RECENT_MOVIES="RECENT_MOVIES";
     private static final String RECENT_SERIES="RECENT_SERIES";
@@ -126,6 +128,9 @@ public class Constants {
     public static String getSORT(){
         return SORT+MyApp.firstServer.getValue();
     }
+    public static String getStreamFormat() {
+        return STREAM_FORMAT + MyApp.firstServer.getValue();
+    }
     public static String getRecentChannels(){
         return RECENT_CHANNELS+MyApp.firstServer.getValue();
     }
@@ -179,6 +184,10 @@ public class Constants {
 
     public static String getCurrentPlayer(){
         return CURRENT_PLAYER0+MyApp.firstServer.getValue();
+    }
+
+    public static String getExternalPlayer(){
+        return EXTERNAL_PLAYER+MyApp.firstServer.getValue();
     }
 
     public static String getRecentSeries(){
@@ -360,6 +369,12 @@ public class Constants {
         SharedPreferences serveripdetails = context.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
         app_icon=serveripdetails.getString("url1","");
         return  app_icon;
+    }
+
+    public static String GetStreamFormat(Context context){
+        String stream_format;
+        stream_format = (String) MyApp.instance.getPreference().get(Constants.getStreamFormat());
+        return stream_format;
     }
 
     public static String GetCorrectFormatTime(int hour,int min){

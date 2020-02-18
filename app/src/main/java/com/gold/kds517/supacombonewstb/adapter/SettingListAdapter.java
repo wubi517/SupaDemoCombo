@@ -15,12 +15,14 @@ import java.util.List;
 public class SettingListAdapter extends BaseAdapter {
     Context context;
     List<String> datas;
+    List<Integer>image_datas;
     LayoutInflater inflater;
 
-    public SettingListAdapter(Context context, List<String> datas) {
+    public SettingListAdapter(Context context, List<String> datas,List<Integer>imageDatas) {
         this.inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         this.context = context;
         this.datas = datas;
+        this.image_datas = imageDatas;
     }
 
     @Override
@@ -46,32 +48,7 @@ public class SettingListAdapter extends BaseAdapter {
         TextView textView = convertView.findViewById(R.id.setting_item);
         textView.setText(datas.get(position));
         ImageView imageView = convertView.findViewById(R.id.setting_image);
-        switch (position){
-            case 0:
-            case 2:
-            case 3:
-            case 5:
-            case 6:
-            case 7:
-                imageView.setBackgroundResource(R.drawable.icon_lock);
-                break;
-            case 4:
-                imageView.setBackgroundResource(R.drawable.icon_osd);
-                break;
-            case 1:
-                imageView.setBackgroundResource(R.drawable.icon_reload);
-                break;
-            case 8:
-                imageView.setBackgroundResource(R.drawable.icon_account);
-                break;
-            case 9:
-                imageView.setBackgroundResource(R.drawable.icon_vpn);
-                break;
-            case 10:
-                imageView.setBackgroundResource(R.drawable.icon_log_out);
-                break;
-
-        }
+        imageView.setBackgroundResource(image_datas.get(position));
         return convertView;
     }
 }

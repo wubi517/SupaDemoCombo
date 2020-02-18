@@ -3,6 +3,8 @@ package com.gold.kds517.supacombonewstb.activity;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -202,6 +204,7 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
     EPGChannel sel_model;
     List<EPGEvent> epgModelList;
     int channel_pos,sub_pos=0,epg_pos,preview_pos,move_pos = 0,osd_time,pro,msg_time = 0;
+    int external_player = 0;
     MainListAdapter adapter;
     ListView channel_list;
     TextView txt_time,txt_category,txt_title,txt_dec,txt_channel,txt_date,txt_time_passed,txt_remain_time,txt_last_time,txt_current_dec,txt_next_dec,
@@ -598,22 +601,7 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
     private void showFullScreen(){
         if(!is_full && txt_progress.getVisibility()== View.GONE){
             is_full = true;
-            ViewGroup.LayoutParams params = ly_surface.getLayoutParams();
-            params.height = MyApp.SCREEN_HEIGHT+Utils.dp2px(getApplicationContext(),50);
-            params.width = MyApp.SCREEN_WIDTH+Utils.dp2px(getApplicationContext(),50);
-            ly_surface.setPadding(Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0));
-            setMargins(ly_surface,Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0));
-            ly_surface.setLayoutParams(params);
-            final Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mHandler.removeCallbacks(mUpdateTimeTask);
-                    updateProgressBar();
-                    ly_bottom.setVisibility(View.VISIBLE);
-                    listTimer();
-                }
-            }, 2000);
+            getVideoActivity(true);
         }else if(is_full){
             if(ly_bottom.getVisibility()== View.GONE){
                 if(pro>99){
@@ -786,16 +774,8 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
         if(channels.get(preview_pos).getStream_id().equalsIgnoreCase(channels.get(position).getStream_id())){
             ly_surface.setVisibility(View.VISIBLE);
             is_full = true;
-            ViewGroup.LayoutParams params = ly_surface.getLayoutParams();
-            params.height = MyApp.SCREEN_HEIGHT+Utils.dp2px(getApplicationContext(),50);
-            params.width = MyApp.SCREEN_WIDTH+Utils.dp2px(getApplicationContext(),50);
-            ly_surface.setPadding(Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0));
-            setMargins(ly_surface,Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0));
-            ly_surface.setLayoutParams(params);
-            mHandler.removeCallbacks(mUpdateTimeTask);
-            updateProgressBar();
-            ly_bottom.setVisibility(View.VISIBLE);
-            listTimer();
+            is_full = true;
+            getVideoActivity(true);
         }else {
             MyApp.is_first = true;
             sub_pos = position;
@@ -1508,7 +1488,7 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
         //set
         MyApp.instance.getPreference().put(Constants.getRecentChannels(), recent_series_names);
         contentUri = MyApp.instance.getIptvclient().buildLiveStreamURL(MyApp.user, MyApp.pass,
-                mStream_id,"ts");
+                mStream_id,Constants.GetStreamFormat(this));
         if(channels.get(sub_pos).getStream_icon()!=null && !channels.get(sub_pos).getStream_icon().isEmpty()){
             Picasso.with(PreviewChannelExoActivity.this).load(channels.get(sub_pos).getStream_icon())
                     .into(channel_logo);
@@ -1553,6 +1533,109 @@ public class PreviewChannelExoActivity extends AppCompatActivity implements  Ada
         }
     }
 
+    private void getVideoActivity(boolean full){
+        if(MyApp.instance.getPreference().get(Constants.getExternalPlayer())==null){
+            external_player = 0;
+        }else {
+            external_player = (int) MyApp.instance.getPreference().get(Constants.getExternalPlayer());
+        }
+        switch (external_player){
+            case 0:
+                if(!full){
+                    playVideo();
+                }else {
+                    ViewGroup.LayoutParams params = ly_surface.getLayoutParams();
+                    params.height = MyApp.SCREEN_HEIGHT+Utils.dp2px(getApplicationContext(),50);
+                    params.width = MyApp.SCREEN_WIDTH+Utils.dp2px(getApplicationContext(),50);
+                    ly_surface.setPadding(Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0));
+                    setMargins(ly_surface,Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0),Utils.dp2px(this,0));
+                    ly_surface.setLayoutParams(params);
+                    final Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mHandler.removeCallbacks(mUpdateTimeTask);
+                            updateProgressBar();
+                            ly_bottom.setVisibility(View.VISIBLE);
+                            listTimer();
+                        }
+                    }, 2000);
+                }
+                break;
+            case 1://MX player
+                if(full){
+                    is_full = false;
+                    Utils.MXPackageInfo pkginfo = Utils.getMXPackageInfo(this);
+                    if(pkginfo!=null){
+                        releaseMediaPlayer();
+                        externalMXplayer(pkginfo.packageName,pkginfo.activityName);
+                    }else {
+                        showExternalPlayerDialog(external_player);
+                    }
+                }
+                break;
+            case 2://VLC player
+                if(full){
+                    is_full = false;
+                    if(Utils.getVlcPackageInfo(this)!=null){
+                        releaseMediaPlayer();
+                        externalvlcplayer();
+                    }else {
+                        showExternalPlayerDialog(external_player);
+                    }
+                }
+                break;
+        }
+    }
+
+    private void externalMXplayer(String pkg_name,String act_name){
+        try {
+            Uri uri = Uri.parse(contentUri);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setPackage(pkg_name);
+            intent.setClassName(pkg_name, act_name);
+            intent.setDataAndType(uri, "application/x-mpegURL");
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+        }
+    }
+
+    private void externalvlcplayer(){
+        Uri uri = Uri.parse(contentUri);
+        Intent vlcIntent = new Intent(Intent.ACTION_VIEW);
+        vlcIntent.setPackage("org.videolan.vlc");
+        vlcIntent.setDataAndTypeAndNormalize(uri, "video/*");
+        vlcIntent.putExtra("title", channels.get(sub_pos).getName());
+        vlcIntent.putExtra("from_start", false);
+        vlcIntent.putExtra("position", 90000l);
+        vlcIntent.setComponent(new ComponentName("org.videolan.vlc", "org.videolan.vlc.gui.video.VideoPlayerActivity"));
+//        vlcIntent.putExtra("subtitles_location", "/sdcard/Movies/Fifty-Fifty.srt");
+        startActivity(vlcIntent);
+    }
+
+    private void showExternalPlayerDialog(int external_player){
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Install External Player");
+        builder.setMessage("Do you want to install this player")
+                .setCancelable(false)
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    Intent intent = null;
+                    switch (external_player){
+                        case 1:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad"));
+                            break;
+                        case 2:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=org.videolan.vlc&hl=en_US"));
+                            break;
+                    }
+                    startActivity(intent);
+                })
+                .setNegativeButton("No", (dialog, which) -> dialog.cancel());
+        androidx.appcompat.app.AlertDialog alertDialog = builder.create();
+
+        // show it
+        alertDialog.show();
+    }
     private void playVideo() {
         toggleFullscreen(true);
         Log.e("url",contentUri);

@@ -14,13 +14,19 @@
         <item>Parental control</item>
         <item>Reload portal</item>
         <item>Sorting Method</item>
-        <item>Select Players</item>
+        <item>Internal Players</item>
+        <item>External Players</item>
+        <item>Stream Format</item>
         <item>Time Format</item>
         <item>Hide Live Categories</item>
         <item>Hide Vod Categories</item>
         <item>Hide Series Categories</item>
+        <item>Check Update</item>
+        <item>Speed Test</item>
         <item>User Account</item>
+        <item>General Setting</item>
         <item>VPN</item>
+        <item>Clear Catch</item>
         <item>Log out</item>
     </string-array>
     <string-array name="package_list">

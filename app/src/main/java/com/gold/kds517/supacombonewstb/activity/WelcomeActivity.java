@@ -1,16 +1,24 @@
 package com.gold.kds517.supacombonewstb.activity;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -23,6 +31,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.gold.kds517.supacombonewstb.BuildConfig;
 import com.gold.kds517.supacombonewstb.MainActivity;
 import com.gold.kds517.supacombonewstb.adapter.CategoryListAdapter;
 import com.gold.kds517.supacombonewstb.apps.CategoryType;
@@ -37,6 +46,7 @@ import com.gold.kds517.supacombonewstb.dialog.PinMultiScreenDlg;
 import com.gold.kds517.supacombonewstb.dialog.ReloadDlg;
 import com.gold.kds517.supacombonewstb.dialog.SettingDlg;
 import com.gold.kds517.supacombonewstb.dialog.TimeFormatDlg;
+import com.gold.kds517.supacombonewstb.dialog.UpdateDlg;
 import com.gold.kds517.supacombonewstb.listner.SimpleGestureFilter;
 import com.gold.kds517.supacombonewstb.listner.SimpleGestureFilter.SimpleGestureListener;
 import com.gold.kds517.supacombonewstb.R;
@@ -48,8 +58,15 @@ import com.squareup.picasso.MemoryPolicy;
 import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -60,6 +77,8 @@ import java.util.List;
 import static com.gold.kds517.supacombonewstb.apps.MyApp.num_server;
 
 public class WelcomeActivity extends AppCompatActivity implements AdapterView.OnItemClickListener,View.OnClickListener,SimpleGestureListener {
+    SharedPreferences serveripdetails;
+    String version,app_Url;
     private SimpleGestureFilter detector;
     Context context = null;
     ImageView image_left, image_center, image_right,image_ad1,image_ad2,icon;
@@ -69,6 +88,7 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
     CategoryListAdapter categoryListAdapter;
     List<CategoryModel> categories;
     List<String > settingDatas;
+    List<Integer>imageDatas;
     LinearLayout ly_center;
     private int current_position = 0;
     private int current_player = 0;
@@ -86,7 +106,7 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
+        serveripdetails = this.getSharedPreferences("serveripdetails", Context.MODE_PRIVATE);
         LinearLayout main_lay = findViewById(R.id.main_lay);
         Bitmap myImage = getBitmapFromURL(Constants.GetMainImage(WelcomeActivity.this));
         Drawable dr = new BitmapDrawable(myImage);
@@ -96,7 +116,24 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
         MyApp.is_welcome = true;
         settingDatas = new ArrayList<>();
         settingDatas.addAll(Arrays.asList(getResources().getStringArray(R.array.setting_list)));
-
+        imageDatas = new ArrayList<>();
+        imageDatas.add(R.drawable.icon_lock);//0  parent control
+        imageDatas.add(R.drawable.icon_reload);//1  reload portal
+        imageDatas.add(R.drawable.icon_lock);//2   sorting method
+        imageDatas.add(R.drawable.icon_lock);//3  internal players
+        imageDatas.add(R.drawable.icon_lock);//4  external players
+        imageDatas.add(R.drawable.icon_osd);//5   stream format
+        imageDatas.add(R.drawable.icon_osd);//6   time format
+        imageDatas.add(R.drawable.icon_lock);//7  hide live category
+        imageDatas.add(R.drawable.icon_lock);//8  hide vod category
+        imageDatas.add(R.drawable.icon_lock);//9  hide series category
+        imageDatas.add(R.drawable.icon_reboot);//10  check update
+        imageDatas.add(R.drawable.icon_reboot);//11  speed test
+        imageDatas.add(R.drawable.icon_account);//12  user account
+        imageDatas.add(R.drawable.icon_lock);//13   general setting
+        imageDatas.add(R.drawable.icon_vpn);//14   vpn
+        imageDatas.add(R.drawable.icon_lock);//15   clear catch
+        imageDatas.add(R.drawable.icon_log_out);//16  log out
         image_ad1 = findViewById(R.id.image_ad1);
         image_ad2 = findViewById(R.id.image_ad2);
         icon = findViewById(R.id.icon);
@@ -793,9 +830,9 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
     }
 
     private void showSettingDlg() {
-        SettingDlg settingDlg = new SettingDlg(WelcomeActivity.this, settingDatas, (dialog, position) -> {
+        SettingDlg settingDlg = new SettingDlg(WelcomeActivity.this, settingDatas,imageDatas, (dialog, position) -> {
             switch (position){
-                case 0:
+                case 0://Parent control
                     ParentContrlDlg dlg = new ParentContrlDlg(WelcomeActivity.this, new ParentContrlDlg.DialogUpdateListener() {
                         @Override
                         public void OnUpdateNowClick(Dialog dialog, int code) {
@@ -810,40 +847,58 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
                     });
                     dlg.show();
                     break;
-                case 1:
+                case 1://Reload portal
                     ReloadDlg();
                     break;
-                case 2:
+                case 2://Sorting Method
                     showSortingDlg();
                     break;
-                case 3:
+                case 3://Internal players
                     showInternalPlayers();
                     break;
-                case 4:
+                case 4://External Players
+                    showExternalPlayers();
+                    break;
+                case 5://Stream Format
+                    showStreamFormatDlg();
+                    break;
+                case 6://Time Format
                     showTimeFormatDlg();
                     break;
-                case 5:
+                case 7://Hide Live category
                     //TODO
                     showMultiSelection(CategoryType.live);
                     break;
-                case 6:
+                case 8: // Hide Vod Category
                     //TODO
                     showMultiSelection(CategoryType.vod);
                     break;
-                case 7:
+                case 9://hide series category
                     //TODO
                     showMultiSelection(CategoryType.series);
                     break;
-                case 8:
+                case 10://check update
+                    getRespond1();
+                    break;
+                case 11://speed test
+                    startActivity(new Intent(this,InternetSpeedActivity.class));
+                    break;
+                case 12://user account
                     AccountDlg accountDlg = new AccountDlg(WelcomeActivity.this, dialog1 -> {
                     });
                     accountDlg.show();
                     break;
-                case 9:
+                case 13://general setting
+                    startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
+                    break;
+                case 14://vpn
                     startActivity(new Intent(WelcomeActivity.this,VpnActivity.class));
                     dialog.dismiss();
                     break;
-                case 10:
+                case 15://clear catch
+                    MyApp.deleteCache(this);
+                    break;
+                case 16://log out
                     MyApp.instance.getPreference().remove(Constants.getLoginInfo());
                     MyApp.instance.getPreference().remove(Constants.getCHANNEL_POS());
                     MyApp.instance.getPreference().remove(Constants.getSeriesPos());
@@ -859,7 +914,7 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
     }
 
     private void showTimeFormatDlg(){
-        TimeFormatDlg timeFormatDlg = new TimeFormatDlg(this, new TimeFormatDlg.DialogUpdateListener() {
+        TimeFormatDlg timeFormatDlg = new TimeFormatDlg(this,0, new TimeFormatDlg.DialogUpdateListener() {
             @Override
             public void OnUpdateNowClick(Dialog dialog) {
                 Constants.getTimeFormat();
@@ -869,6 +924,21 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
             @Override
             public void OnUpdateSkipClick(Dialog dialog) {
                 Constants.getTimeFormat();
+                dialog.dismiss();
+            }
+        });
+        timeFormatDlg.show();
+    }
+
+    private void showStreamFormatDlg(){
+        TimeFormatDlg timeFormatDlg = new TimeFormatDlg(this, 1, new TimeFormatDlg.DialogUpdateListener() {
+            @Override
+            public void OnUpdateNowClick(Dialog dialog) {
+                dialog.dismiss();
+            }
+
+            @Override
+            public void OnUpdateSkipClick(Dialog dialog) {
                 dialog.dismiss();
             }
         });
@@ -990,10 +1060,26 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
         else current_position = 0;
         builder.setSingleChoiceItems(screen_mode_list, current_position,
                 (dialog, which) -> current_position =which);
-        builder.setPositiveButton("OK", (dialog, which) -> {
-            MyApp.instance.getPreference().put(Constants.getCurrentPlayer(), current_position);
-        });
+        builder.setPositiveButton("OK", (dialog, which) ->
+                MyApp.instance.getPreference().put(Constants.getCurrentPlayer(), current_position));
         builder.setNegativeButton("Cancel", null);
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+    }
+
+    private void showExternalPlayers(){
+        AlertDialog.Builder builder =  new AlertDialog.Builder(this);
+        builder.setTitle("Player Option");
+        String[] player_mode_list = {"Disable","MX Player","Vlc Player"};
+        if(MyApp.instance.getPreference().get(Constants.getExternalPlayer())!=null)
+            current_position = (int) MyApp.instance.getPreference().get(Constants.getExternalPlayer());
+        else current_position = 0;
+        builder.setSingleChoiceItems(player_mode_list,current_position,
+                ((dialog, which) -> current_position=which));
+        builder.setPositiveButton("OK",((dialog, which) ->
+                MyApp.instance.getPreference().put(Constants.getExternalPlayer(),current_position)));
+        builder.setNegativeButton("Cancel",null);
 
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
@@ -1014,5 +1100,194 @@ public class WelcomeActivity extends AppCompatActivity implements AdapterView.On
         alertDialog.show();
     }
 
+
+    private void getRespond1(){
+        String key = "";
+        switch (MyApp.firstServer){
+            case first:
+                key=Constants.GetUrl1(this);
+                break;
+            case second:
+                key=Constants.GetUrl2(this);
+                break;
+            case third:
+                key=Constants.GetUrl3(this);
+                break;
+        }
+        try {
+            String response = MyApp.instance.getIptvclient().login(key);
+            Log.e("response",response);
+            try {
+                JSONObject object = new JSONObject(response);
+                if (object.getBoolean("status")) {
+                    JSONObject data_obj = object.getJSONObject("data");
+                    String url = (String) data_obj.get("url");
+                    if (url.startsWith("http://") || url.startsWith("https://")) {
+                        if (url.endsWith("/")){
+                            url = url;
+                        }else {
+                            url = url+"/";
+                        }
+                        JSONArray array = data_obj.getJSONArray("image_urls");
+                        SharedPreferences.Editor server_editor = serveripdetails.edit();
+                        server_editor.putString("ip", url);
+                        version = (String )data_obj.get("version");
+                        app_Url = (String )data_obj.get("app_url");
+                        String dual_screen=data_obj.getString("pin_2");
+                        String tri_screen=data_obj.getString("pin_3");
+                        String four_way_screen=data_obj.getString("pin_4");
+                        server_editor.putString("dual_screen",dual_screen);
+                        server_editor.putString("tri_screen",tri_screen);
+                        server_editor.putString("four_way_screen",four_way_screen);
+                        server_editor.putString("i",(String) array.get(0));
+                        server_editor.putString("m",(String )array.get(1));
+                        server_editor.putString("l",(String) array.get(2));
+                        server_editor.putString("d1",(String)array.get(3));
+                        server_editor.putString("d2",(String )array.get(4));
+                        server_editor.apply();
+                        if(MyApp.instance.getPreference().get(Constants.getSORT())==null){
+                            MyApp.instance.getPreference().put(Constants.getSORT(),0);
+                        }
+                        if(MyApp.instance.getPreference().get(Constants.getCurrentPlayer())==null){
+                            MyApp.instance.getPreference().put(Constants.getCurrentPlayer(),0);
+                        }
+                        getUpdate();
+                    } else {
+                        Toast.makeText(this, "Invalid Server URL!", Toast.LENGTH_SHORT).show();
+                    }
+
+                } else {
+                    Toast.makeText(this, "Server Error!", Toast.LENGTH_SHORT).show();
+                }
+            }catch (JSONException e){
+                e.printStackTrace();
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private void getUpdate(){
+        MyApp.instance.versionCheck();
+        double code = 0.0;
+        try {
+            code = Double.parseDouble(version);
+        }catch (Exception e){
+            code = 0.0;
+        }
+        MyApp.instance.loadVersion();
+        double app_vs = Double.parseDouble(MyApp.version_name);
+        if (code > app_vs) {
+            UpdateDlg updateDlg = new UpdateDlg(this, new UpdateDlg.DialogUpdateListener() {
+                @Override
+                public void OnUpdateNowClick(Dialog dialog) {
+                    dialog.dismiss();
+                    new versionUpdate().execute(app_Url);
+                }
+                @Override
+                public void OnUpdateSkipClick(Dialog dialog) {
+                    dialog.dismiss();
+                }
+            });
+            updateDlg.show();
+        }else {
+            Toast.makeText(this,"Current version is lastest version.",Toast.LENGTH_SHORT).show();
+        }
+    }
+    class versionUpdate extends AsyncTask<String, Integer, String> {
+        ProgressDialog mProgressDialog;
+        File file;
+
+        @Override
+        protected void onPreExecute() {
+            mProgressDialog = new ProgressDialog(WelcomeActivity.this);
+            mProgressDialog.setMessage(getResources().getString(R.string.request_download));
+            mProgressDialog.setIndeterminate(true);
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            mProgressDialog.setCancelable(false);
+            mProgressDialog.show();
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            mProgressDialog.setIndeterminate(false);
+            mProgressDialog.setMax(100);
+            mProgressDialog.setProgress(values[0]);
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            InputStream input = null;
+            OutputStream output = null;
+            HttpURLConnection connection = null;
+            try {
+                URL url = new URL(params[0]);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.connect();
+                int fileLength = connection.getContentLength();
+                input = connection.getInputStream();
+                String destination = Environment.getExternalStorageDirectory() + "/";
+                String fileName = "supanewui.apk";
+                destination += fileName;
+                final Uri uri = Uri.parse("file://" + destination);
+                file = new File(destination);
+                if(file.exists()){
+                    file.delete();
+                }
+                output = new FileOutputStream(file, false);
+
+                byte data[] = new byte[4096];
+                long total = 0;
+                int count;
+                while ((count = input.read(data)) != -1) {
+                    if (isCancelled()) {
+                        input.close();
+                        return null;
+                    }
+                    total += count;
+                    if (fileLength > 0)
+                        publishProgress((int) (total * 100 / fileLength));
+                    output.write(data, 0, count);
+                }
+            } catch (Exception e) {
+                return e.toString();
+            } finally {
+                try {
+                    if (output != null)
+                        output.close();
+                    if (input != null)
+                        input.close();
+                } catch (IOException ignored) {
+                }
+                if (connection != null)
+                    connection.disconnect();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            mProgressDialog.dismiss();
+            if (result != null) {
+                Toast.makeText(getApplicationContext(),"Update Failed",Toast.LENGTH_LONG).show();
+            } else
+                startInstall(file);
+        }
+    }
+
+    private void startInstall(File fileName) {
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1) {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(FileProvider.getUriForFile(this,BuildConfig.APPLICATION_ID + ".provider",fileName), "application/vnd.android.package-archive");
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
+        }else {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.fromFile(fileName), "application/vnd.android.package-archive");
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        }
+    }
 
 }

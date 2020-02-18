@@ -1,8 +1,8 @@
 package com.gold.kds517.supacombonewstb.utils;
 
-import android.app.job.JobScheduler;
-import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.wifi.WifiManager;
 import android.util.Log;
@@ -12,6 +12,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 public class Utils {
+    private static final String 	PACKAGE_NAME		= "org.videolan.vlc";
+    private static final String 	PLAYBACK_ACTIVITY	= "org.videolan.vlc.gui.video.VideoPlayerActivity";
+    private static final String 	PACKAGE_NAME_PRO 		= "com.mxtech.videoplayer.pro";
+    private static final String 	PACKAGE_NAME_AD 		= "com.mxtech.videoplayer.ad";
+    private static final String 	PLAYBACK_ACTIVITY_PRO	= "com.mxtech.videoplayer.ActivityScreen";
+    private static final String 	PLAYBACK_ACTIVITY_AD	= "com.mxtech.videoplayer.ad.ActivityScreen";
     public static int dp2px(Context context, int dp) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp,
                 context.getResources().getDisplayMetrics());
@@ -97,5 +103,81 @@ public class Utils {
         boolean xlarge = ((context.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) == 4);
         boolean large = ((context.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) == Configuration.SCREENLAYOUT_SIZE_LARGE);
         return (xlarge || large);
+    }
+
+    private static class VLCPackageInfo
+    {
+        final String packageName;
+        final String activityName;
+
+        VLCPackageInfo( String packageName, String activityName ) {
+            this.packageName = packageName;
+            this.activityName = activityName;
+        }
+    }
+
+    private static final VLCPackageInfo[] PACKAGES = {
+            new VLCPackageInfo(PACKAGE_NAME, PLAYBACK_ACTIVITY)
+    };
+
+    public static VLCPackageInfo getVlcPackageInfo(Context context)
+    {
+        for( VLCPackageInfo pkg: PACKAGES )
+        {
+            try
+            {
+                ApplicationInfo info = context.getPackageManager().getApplicationInfo(pkg.packageName, 0);
+                if( info.enabled )
+                    return pkg;
+                else
+                    return null;
+            }
+            catch(PackageManager.NameNotFoundException ex)
+            {
+                return null;
+//                Utils.toaster(this,"VLC player does not exist.");
+//                Log.v( TAG, "MX Player package `" + pkg.packageName + "` does not exist." );
+            }
+        }
+
+        return null;
+    }
+
+    public static class MXPackageInfo
+    {
+        public final String packageName;
+        public final String activityName;
+
+        MXPackageInfo( String packageName, String activityName ) {
+            this.packageName = packageName;
+            this.activityName = activityName;
+        }
+    }
+
+    public static final MXPackageInfo[] PACKAGES1 = {
+            new MXPackageInfo(PACKAGE_NAME_PRO, PLAYBACK_ACTIVITY_PRO),
+            new MXPackageInfo(PACKAGE_NAME_AD, PLAYBACK_ACTIVITY_AD),
+    };
+
+    /**
+     * @return null if any MX Player packages not exist.
+     */
+    public static MXPackageInfo getMXPackageInfo(Context context)
+    {
+        for( MXPackageInfo pkg: PACKAGES1 )
+        {
+            try
+            {
+                ApplicationInfo info = context.getPackageManager().getApplicationInfo(pkg.packageName, 0);
+                if(info.enabled ){
+                    return pkg;
+                }
+            }
+            catch(PackageManager.NameNotFoundException ex)
+            {
+            }
+        }
+
+        return null;
     }
 }

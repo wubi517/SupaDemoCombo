@@ -31,10 +31,14 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
         tools:ignore="GoogleAppIndexingWarning,UnusedAttribute">
-        <activity android:name=".activity.NotificationActivity"/>
-        <activity android:name=".activity.RecordingActivity"
+        <activity android:name=".activity.InternetSpeedActivity"
             android:screenOrientation="landscape"
             android:theme="@style/AppTheme.NoActionBar"/>
+        <activity android:name=".activity.NotificationActivity" />
+        <activity
+            android:name=".activity.RecordingActivity"
+            android:screenOrientation="landscape"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activity.GuideActivityExtra"
             android:screenOrientation="landscape"

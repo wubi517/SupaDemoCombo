@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
-    android:layout_width="400dp"
+    android:layout_width="500dp"
     android:layout_height="300dp">
 
     <LinearLayout
@@ -28,7 +28,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:padding="10dp">
-        <ListView
+        <GridView
+            android:numColumns="2"
+            android:verticalSpacing="3sp"
+            android:horizontalSpacing="5sp"
             android:id="@+id/setting_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

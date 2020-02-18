@@ -14,7 +14,7 @@ import com.gold.kds517.supacombonewstb.apps.Constants;
 import java.util.Calendar;
 
 public class CustomTimePickerDialog extends TimePickerDialog {
-    public static final int TIME_PICKER_INTERVAL = 15;
+    public static final int TIME_PICKER_INTERVAL = 2;
     private boolean mEventIgnored = false;
     private CenterClickListner listener;
     private int ihour=-1;
@@ -57,14 +57,19 @@ public class CustomTimePickerDialog extends TimePickerDialog {
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_CENTER) {
-            if(ihour==-1 || imin == -1){
-                final Calendar myCalender = Calendar.getInstance();
-                ihour = myCalender.get(Calendar.HOUR_OF_DAY);
-                imin= myCalender.get(Calendar.MINUTE);
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            switch (event.getKeyCode()){
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_BACK:
+                    if(ihour==-1 || imin == -1){
+                        final Calendar myCalender = Calendar.getInstance();
+                        ihour = myCalender.get(Calendar.HOUR_OF_DAY);
+                        imin= myCalender.get(Calendar.MINUTE);
+                    }
+                    Log.e("picker_null", Constants.GetCorrectFormatTime(ihour,imin));
+                    listener.OnCenterClick(CustomTimePickerDialog.this,Constants.GetCorrectFormatTime(ihour,imin));
+                    break;
             }
-            Log.e("picker_null", Constants.GetCorrectFormatTime(ihour,imin));
-            listener.OnCenterClick(CustomTimePickerDialog.this,Constants.GetCorrectFormatTime(ihour,imin));
         }
         return super.dispatchKeyEvent(event);
     }

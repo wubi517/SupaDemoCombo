@@ -1,6 +1,9 @@
 package com.gold.kds517.supacombonewstb.activity;
 
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -24,6 +27,7 @@ import com.gold.kds517.supacombonewstb.apps.MyApp;
 import com.gold.kds517.supacombonewstb.models.CategoryModelSeries;
 import com.gold.kds517.supacombonewstb.models.MovieModel;
 import com.gold.kds517.supacombonewstb.models.SeriesFullModel;
+import com.gold.kds517.supacombonewstb.utils.Utils;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
@@ -52,7 +56,7 @@ public class SeriesCatActivity extends AppCompatActivity implements   View.OnCli
     LinearLayout seri_lay;
     float rating;
     boolean is_sub = true;
-
+    private String episode_url,episode_title;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -187,23 +191,100 @@ public class SeriesCatActivity extends AppCompatActivity implements   View.OnCli
             movieModels = seriesFullModels.get(ses_pos).getChannels();
             MyApp.movieModels = movieModels;
             MyApp.episode_pos = position;
-            int current_player = (int) MyApp.instance.getPreference().get(Constants.getCurrentPlayer());
-
-            Intent intent = new Intent();
-            switch (current_player){
+            episode_title = movieModels.get(position).getName();
+            episode_url = MyApp.instance.getIptvclient().buildSeriesStreamURL(MyApp.user,MyApp.pass,movieModels.get(position).getStream_id(),movieModels.get(position).getType());
+            int external_player;
+            if(MyApp.instance.getPreference().get(Constants.getExternalPlayer())==null){
+                external_player = 0;
+            }else {
+                external_player = (int) MyApp.instance.getPreference().get(Constants.getExternalPlayer());
+            }
+            switch (external_player){
                 case 0:
-                    intent = new Intent(this,SeriesPlayActivity.class);
+                    int current_player = (int) MyApp.instance.getPreference().get(Constants.getCurrentPlayer());
+
+                    Intent intent = new Intent();
+                    switch (current_player){
+                        case 0:
+                            intent = new Intent(this,SeriesPlayActivity.class);
+                            break;
+                        case 1:
+                            intent = new Intent(this,SeriesIjkPlayActivity.class);
+                            break;
+                        case 2:
+                            intent = new Intent(this,SeriesExoPlayActivity.class);
+                            break;
+                    }
+                    startActivity(intent);
                     break;
                 case 1:
-                    intent = new Intent(this,SeriesIjkPlayActivity.class);
+                    Utils.MXPackageInfo pkginfo = Utils.getMXPackageInfo(SeriesCatActivity.this);
+                    if(pkginfo!=null){
+                        externalMXplayer(pkginfo.packageName,pkginfo.activityName);
+                    }else {
+                        showExternalPlayerDialog(external_player);
+                    }
                     break;
                 case 2:
-                    intent = new Intent(this,SeriesExoPlayActivity.class);
+                    if(Utils.getVlcPackageInfo(SeriesCatActivity.this)!=null){
+                        externalvlcplayer();
+                    }else {
+                        showExternalPlayerDialog(external_player);
+                    }
                     break;
             }
-            startActivity(intent);
+
         }
 
+    }
+
+    private void externalMXplayer(String pkg_name,String act_name){
+        try {
+            Uri uri = Uri.parse(episode_url);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setPackage(pkg_name);
+            intent.setClassName(pkg_name, act_name);
+            intent.setDataAndType(uri, "application/x-mpegURL");
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+        }
+    }
+
+    private void externalvlcplayer(){
+        Uri uri = Uri.parse(episode_url);
+        Intent vlcIntent = new Intent(Intent.ACTION_VIEW);
+        vlcIntent.setPackage("org.videolan.vlc");
+        vlcIntent.setDataAndTypeAndNormalize(uri, "video/*");
+        vlcIntent.putExtra("title", episode_title);
+        vlcIntent.putExtra("from_start", true);
+        vlcIntent.putExtra("position", 90000l);
+        vlcIntent.setComponent(new ComponentName("org.videolan.vlc", "org.videolan.vlc.gui.video.VideoPlayerActivity"));
+//        vlcIntent.putExtra("subtitles_location", "/sdcard/Movies/Fifty-Fifty.srt");
+        startActivity(vlcIntent);
+    }
+
+    private void showExternalPlayerDialog(int external_player){
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Install External Player");
+        builder.setMessage("Do you want to install this player")
+                .setCancelable(false)
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    Intent intent = null;
+                    switch (external_player){
+                        case 1:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad"));
+                            break;
+                        case 2:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=org.videolan.vlc&hl=en_US"));
+                            break;
+                    }
+                    startActivity(intent);
+                })
+                .setNegativeButton("No", (dialog, which) -> dialog.cancel());
+        androidx.appcompat.app.AlertDialog alertDialog = builder.create();
+
+        // show it
+        alertDialog.show();
     }
 
     @Override

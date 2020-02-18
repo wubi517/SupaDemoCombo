@@ -8,6 +8,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.AdapterView;
+import android.widget.GridView;
 import android.widget.ListView;
 
 import com.gold.kds517.supacombonewstb.R;
@@ -18,15 +19,15 @@ import java.util.List;
 public class SettingDlg extends Dialog implements AdapterView.OnItemClickListener{
     DialogSettingListner listner;
     List<String > datas;
-    public SettingDlg(@NonNull Context context, List<String> datas, DialogSettingListner listener) {
+    public SettingDlg(@NonNull Context context, List<String> datas,List<Integer> imageDatas, DialogSettingListner listener) {
         super(context);
         this.listner = listener;
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dlg_settting);
         getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
         this.datas = datas;
-        ListView listview = (ListView) findViewById(R.id.setting_list);
-        SettingListAdapter adapter = new SettingListAdapter(context, datas);
+        GridView listview = findViewById(R.id.setting_list);
+        SettingListAdapter adapter = new SettingListAdapter(context, datas,imageDatas);
         listview.setAdapter(adapter);
         listview.setOnItemClickListener(this);
     }

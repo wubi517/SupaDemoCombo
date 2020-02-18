@@ -3,7 +3,10 @@ package com.gold.kds517.supacombonewstb.activity;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Dialog;
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -20,6 +23,7 @@ import com.gold.kds517.supacombonewstb.apps.Constants;
 import com.gold.kds517.supacombonewstb.apps.MyApp;
 import com.gold.kds517.supacombonewstb.dialog.StopRecordingDlg;
 import com.gold.kds517.supacombonewstb.models.RecordingModel;
+import com.gold.kds517.supacombonewstb.utils.Utils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -34,6 +38,7 @@ public class RecordingActivity extends AppCompatActivity {
     private ListView recording_list;
     private RecordingListAdapter adapter;
     private TextView txt_time;
+    private String title,url;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,11 +78,38 @@ public class RecordingActivity extends AppCompatActivity {
             @Override
             public void OnUpdateNowClick(Dialog dialog) {
                 dialog.dismiss();
-                Intent intent = new Intent(RecordingActivity.this,VideoPlayActivity.class);
-                intent.putExtra("title",real_models.get(pos).getName().substring(14));
-                intent.putExtra("url",real_models.get(pos).getUrl());
-                intent.putExtra("is_recording",true);
-                startActivity(intent);
+                title = real_models.get(pos).getName().substring(14);
+                url = real_models.get(pos).getUrl();
+                int external_player = 0;
+                if(MyApp.instance.getPreference().get(Constants.getExternalPlayer())==null){
+                    external_player = 0;
+                }else {
+                    external_player = (int) MyApp.instance.getPreference().get(Constants.getExternalPlayer());
+                }
+                switch (external_player){
+                    case 0:
+                        Intent intent = new Intent(RecordingActivity.this,VideoPlayActivity.class);
+                        intent.putExtra("title",real_models.get(pos).getName().substring(14));
+                        intent.putExtra("url",real_models.get(pos).getUrl());
+                        intent.putExtra("is_recording",true);
+                        startActivity(intent);
+                        break;
+                    case 1:
+                        Utils.MXPackageInfo pkginfo = Utils.getMXPackageInfo(RecordingActivity.this);
+                        if(pkginfo!=null){
+                            externalMXplayer(pkginfo.packageName,pkginfo.activityName);
+                        }else {
+                            showExternalPlayerDialog(external_player);
+                        }
+                        break;
+                    case 2:
+                        if(Utils.getVlcPackageInfo(RecordingActivity.this)!=null){
+                            externalvlcplayer();
+                        }else {
+                            showExternalPlayerDialog(external_player);
+                        }
+                        break;
+                }
             }
 
             @Override
@@ -170,5 +202,54 @@ public class RecordingActivity extends AppCompatActivity {
             }
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    private void externalMXplayer(String pkg_name,String act_name){
+        try {
+            Uri uri = Uri.parse(url);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setPackage(pkg_name);
+            intent.setClassName(pkg_name, act_name);
+            intent.setDataAndType(uri, "application/x-mpegURL");
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+        }
+    }
+
+    private void externalvlcplayer(){
+        Uri uri = Uri.parse(url);
+        Intent vlcIntent = new Intent(Intent.ACTION_VIEW);
+        vlcIntent.setPackage("org.videolan.vlc");
+        vlcIntent.setDataAndTypeAndNormalize(uri, "video/*");
+        vlcIntent.putExtra("title", title);
+        vlcIntent.putExtra("from_start", true);
+        vlcIntent.putExtra("position", 90000l);
+        vlcIntent.setComponent(new ComponentName("org.videolan.vlc", "org.videolan.vlc.gui.video.VideoPlayerActivity"));
+//        vlcIntent.putExtra("subtitles_location", "/sdcard/Movies/Fifty-Fifty.srt");
+        startActivity(vlcIntent);
+    }
+
+    private void showExternalPlayerDialog(int external_player){
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Install External Player");
+        builder.setMessage("Do you want to install this player")
+                .setCancelable(false)
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    Intent intent = null;
+                    switch (external_player){
+                        case 1:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad"));
+                            break;
+                        case 2:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=org.videolan.vlc&hl=en_US"));
+                            break;
+                    }
+                    startActivity(intent);
+                })
+                .setNegativeButton("No", (dialog, which) -> dialog.cancel());
+        androidx.appcompat.app.AlertDialog alertDialog = builder.create();
+
+        // show it
+        alertDialog.show();
     }
 }

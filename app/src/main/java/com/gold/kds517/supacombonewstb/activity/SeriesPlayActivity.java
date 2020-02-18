@@ -1,6 +1,5 @@
 package com.gold.kds517.supacombonewstb.activity;
 
-import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;

@@ -2,6 +2,8 @@ package com.gold.kds517.supacombonewstb.activity;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.net.Uri;
@@ -34,6 +36,7 @@ import com.gold.kds517.supacombonewstb.dialog.PinDlg;
 import com.gold.kds517.supacombonewstb.models.EPGChannel;
 import com.gold.kds517.supacombonewstb.models.EPGEvent;
 import com.gold.kds517.supacombonewstb.models.FullModel;
+import com.gold.kds517.supacombonewstb.utils.Utils;
 import com.squareup.picasso.MemoryPolicy;
 import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
@@ -304,7 +307,7 @@ public class TvGuideActivity extends AppCompatActivity implements View.OnClickLi
     private void playChannel(EPGChannel epgChannel) {
         selectedEpgChannel = epgChannel;
         contentUri = MyApp.instance.getIptvclient().buildLiveStreamURL(MyApp.user, MyApp.pass,
-                epgChannel.getStream_id()+"","ts");
+                epgChannel.getStream_id()+"",Constants.GetStreamFormat(this));
         Log.e("url",contentUri);
         if(def_lay.getVisibility()== View.VISIBLE) def_lay.setVisibility(View.GONE);
         releaseMediaPlayer();
@@ -412,30 +415,107 @@ public class TvGuideActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     private void goVideoActivity(EPGChannel epgChannel) {
-        String url = MyApp.instance.getIptvclient().buildLiveStreamURL(MyApp.user, MyApp.pass,
+        contentUri = MyApp.instance.getIptvclient().buildLiveStreamURL(MyApp.user, MyApp.pass,
                 epgChannel.getStream_id()+"","ts");
-        Log.e(getClass().getSimpleName(),url);
-        int current_player = (int) MyApp.instance.getPreference().get(Constants.getCurrentPlayer());
-        Intent intent;
-        switch (current_player){
+        Log.e(getClass().getSimpleName(),contentUri);
+        int external_player;
+        if(MyApp.instance.getPreference().get(Constants.getExternalPlayer())==null){
+            external_player = 0;
+        }else {
+            external_player = (int) MyApp.instance.getPreference().get(Constants.getExternalPlayer());
+        }
+        switch (external_player){
             case 0:
-            default:
-                intent = new Intent(this,LivePlayActivity.class);
+                int current_player = (int) MyApp.instance.getPreference().get(Constants.getCurrentPlayer());
+                Intent intent;
+                switch (current_player){
+                    case 0:
+                    default:
+                        intent = new Intent(this,LivePlayActivity.class);
+                        break;
+                    case 1:
+                        intent = new Intent(this,LiveIjkPlayActivity.class);
+                        break;
+                    case 2:
+                        intent = new Intent(this,LiveExoPlayActivity.class);
+                        break;
+                }
+                MyApp.epgChannel = epgChannel;
+                intent.putExtra("title",epgChannel.getName());
+                intent.putExtra("img",epgChannel.getStream_icon());
+                intent.putExtra("url",contentUri);
+                intent.putExtra("stream_id",epgChannel.getStream_id());
+                intent.putExtra("is_live",true);
+                startActivity(intent);
                 break;
             case 1:
-                intent = new Intent(this,LiveIjkPlayActivity.class);
+                Utils.MXPackageInfo pkginfo = Utils.getMXPackageInfo(this);
+                if(pkginfo!=null){
+                    releaseMediaPlayer();
+                    externalMXplayer(pkginfo.packageName,pkginfo.activityName);
+                }else {
+                    showExternalPlayerDialog(external_player);
+                }
                 break;
             case 2:
-                intent = new Intent(this,LiveExoPlayActivity.class);
+                if(Utils.getVlcPackageInfo(this)!=null){
+                    releaseMediaPlayer();
+                    externalvlcplayer();
+                }else {
+                    showExternalPlayerDialog(external_player);
+                }
                 break;
         }
-        MyApp.epgChannel = epgChannel;
-        intent.putExtra("title",epgChannel.getName());
-        intent.putExtra("img",epgChannel.getStream_icon());
-        intent.putExtra("url",url);
-        intent.putExtra("stream_id",epgChannel.getStream_id());
-        intent.putExtra("is_live",true);
-        startActivity(intent);
+
+    }
+
+    private void externalMXplayer(String pkg_name,String act_name){
+        try {
+            Uri uri = Uri.parse(contentUri);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setPackage(pkg_name);
+            intent.setClassName(pkg_name, act_name);
+            intent.setDataAndType(uri, "application/x-mpegURL");
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+        }
+    }
+
+    private void externalvlcplayer(){
+        Uri uri = Uri.parse(contentUri);
+        Intent vlcIntent = new Intent(Intent.ACTION_VIEW);
+        vlcIntent.setPackage("org.videolan.vlc");
+        vlcIntent.setDataAndTypeAndNormalize(uri, "video/*");
+        vlcIntent.putExtra("title", MyApp.epgChannel.getName());
+        vlcIntent.putExtra("from_start", false);
+        vlcIntent.putExtra("position", 90000l);
+        vlcIntent.setComponent(new ComponentName("org.videolan.vlc", "org.videolan.vlc.gui.video.VideoPlayerActivity"));
+//        vlcIntent.putExtra("subtitles_location", "/sdcard/Movies/Fifty-Fifty.srt");
+        startActivity(vlcIntent);
+    }
+
+    private void showExternalPlayerDialog(int external_player){
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Install External Player");
+        builder.setMessage("Do you want to install this player")
+                .setCancelable(false)
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    Intent intent = null;
+                    switch (external_player){
+                        case 1:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad"));
+                            break;
+                        case 2:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=org.videolan.vlc&hl=en_US"));
+                            break;
+                    }
+                    startActivity(intent);
+                })
+                .setNegativeButton("No", (dialog, which) -> dialog.cancel());
+        androidx.appcompat.app.AlertDialog alertDialog = builder.create();
+
+        // show it
+        alertDialog.show();
     }
 
     @SuppressLint("SetTextI18n")

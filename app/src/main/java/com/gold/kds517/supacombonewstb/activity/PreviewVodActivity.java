@@ -1,6 +1,9 @@
 package com.gold.kds517.supacombonewstb.activity;
 
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -26,6 +29,7 @@ import com.gold.kds517.supacombonewstb.dialog.SearchVodDlg;
 import com.gold.kds517.supacombonewstb.models.CategoryModel;
 import com.gold.kds517.supacombonewstb.models.MovieInfoModel;
 import com.gold.kds517.supacombonewstb.models.MovieModel;
+import com.gold.kds517.supacombonewstb.utils.Utils;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONObject;
@@ -394,27 +398,102 @@ public class PreviewVodActivity extends AppCompatActivity implements View.OnClic
         }
         //set
         MyApp.instance.getPreference().put(Constants.getRecentMovies(), recent_channel_models);
-        vod_title = movieModels.get(sub_pos).getName();
-        vod_image = movieModels.get(sub_pos).getStream_icon();
-        type = movieModels.get(sub_pos).getExtension();
-        MyApp.vod_model = movieModels.get(sub_pos);
-        vod_url = MyApp.instance.getIptvclient().buildMovieStreamURL(MyApp.user,MyApp.pass,mStream_id,type);
-        Intent intent = new Intent();
-        switch (current_player){
+        int external_player = 0;
+        if(MyApp.instance.getPreference().get(Constants.getExternalPlayer())==null){
+            external_player = 0;
+        }else {
+            external_player = (int) MyApp.instance.getPreference().get(Constants.getExternalPlayer());
+        }
+        switch (external_player){
             case 0:
-                intent = new Intent(this,VideoPlayActivity.class);
+                vod_title = movieModels.get(sub_pos).getName();
+                vod_image = movieModels.get(sub_pos).getStream_icon();
+                type = movieModels.get(sub_pos).getExtension();
+                MyApp.vod_model = movieModels.get(sub_pos);
+                vod_url = MyApp.instance.getIptvclient().buildMovieStreamURL(MyApp.user,MyApp.pass,mStream_id,type);
+                Intent intent = new Intent();
+                switch (current_player){
+                    case 0:
+                        intent = new Intent(this,VideoPlayActivity.class);
+                        break;
+                    case 1:
+                        intent = new Intent(this,VideoIjkPlayActivity.class);
+                        break;
+                    case 2:
+                        intent = new Intent(this,VideoExoPlayActivity.class);
+                        break;
+                }
+                intent.putExtra("title",vod_title);
+                intent.putExtra("img",vod_image);
+                intent.putExtra("url",vod_url);
+                startActivity(intent);
                 break;
             case 1:
-                intent = new Intent(this,VideoIjkPlayActivity.class);
+                Utils.MXPackageInfo pkginfo = Utils.getMXPackageInfo(this);
+                if(pkginfo!=null){
+                    externalMXplayer(pkginfo.packageName,pkginfo.activityName);
+                }else {
+                    showExternalPlayerDialog(external_player);
+                }
                 break;
             case 2:
-                intent = new Intent(this,VideoExoPlayActivity.class);
+                if(Utils.getVlcPackageInfo(this)!=null){
+                    externalvlcplayer();
+                }else {
+                    showExternalPlayerDialog(external_player);
+                }
                 break;
         }
-        intent.putExtra("title",vod_title);
-        intent.putExtra("img",vod_image);
-        intent.putExtra("url",vod_url);
-        startActivity(intent);
+
+}
+
+    private void externalMXplayer(String pkg_name,String act_name){
+        try {
+            Uri uri = Uri.parse(vod_url);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setPackage(pkg_name);
+            intent.setClassName(pkg_name, act_name);
+            intent.setDataAndType(uri, "application/x-mpegURL");
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+        }
+    }
+
+    private void externalvlcplayer(){
+        Uri uri = Uri.parse(vod_url);
+        Intent vlcIntent = new Intent(Intent.ACTION_VIEW);
+        vlcIntent.setPackage("org.videolan.vlc");
+        vlcIntent.setDataAndTypeAndNormalize(uri, "video/*");
+        vlcIntent.putExtra("title", vod_title);
+        vlcIntent.putExtra("from_start", true);
+        vlcIntent.putExtra("position", 90000l);
+        vlcIntent.setComponent(new ComponentName("org.videolan.vlc", "org.videolan.vlc.gui.video.VideoPlayerActivity"));
+//        vlcIntent.putExtra("subtitles_location", "/sdcard/Movies/Fifty-Fifty.srt");
+        startActivity(vlcIntent);
+    }
+
+    private void showExternalPlayerDialog(int external_player){
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Install External Player");
+        builder.setMessage("Do you want to install this player")
+                .setCancelable(false)
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    Intent intent = null;
+                    switch (external_player){
+                        case 1:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad"));
+                            break;
+                        case 2:
+                            intent= new Intent(Intent.ACTION_VIEW).setData(Uri.parse("https://play.google.com/store/apps/details?id=org.videolan.vlc&hl=en_US"));
+                            break;
+                    }
+                    startActivity(intent);
+                })
+                .setNegativeButton("No", (dialog, which) -> dialog.cancel());
+        androidx.appcompat.app.AlertDialog alertDialog = builder.create();
+
+        // show it
+        alertDialog.show();
     }
 
     private void startMovieInfo(){
