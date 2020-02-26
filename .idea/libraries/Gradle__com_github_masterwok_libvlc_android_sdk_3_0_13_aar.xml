@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="Gradle: com.github.masterwok:libvlc-android-sdk:3.0.13@aar">
     <CLASSES>
-      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/9e7e61f18206e30a1168a5bd425f0d97/jetified-libvlc-android-sdk-3.0.13/jars/classes.jar!/" />
-      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/9e7e61f18206e30a1168a5bd425f0d97/jetified-libvlc-android-sdk-3.0.13/res" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/ae9a8a69e87b71cba0d6a9fdd4598396/jetified-libvlc-android-sdk-3.0.13/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/ae9a8a69e87b71cba0d6a9fdd4598396/jetified-libvlc-android-sdk-3.0.13/res" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
